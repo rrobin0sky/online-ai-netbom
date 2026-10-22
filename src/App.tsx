@@ -4,6 +4,8 @@ import { FilterSidebar } from './components/FilterSidebar';
 import { DeviceCatalog } from './components/DeviceCatalog';
 import { BOMDrawer } from './components/BOMDrawer';
 import { DeviceDiffModal } from './components/DeviceDiffModal';
+import { AddDeviceModal } from './components/AddDeviceModal';
+import { SceneTemplateModal } from './components/SceneTemplateModal';
 import { useBOMStore } from './store/useBOMStore';
 import {
   Server,
@@ -19,6 +21,8 @@ import { BOMItem } from './types/device';
 
 export const App: React.FC = () => {
   const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
+  const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const { diffDeviceIds, setDrawerOpen, items } = useBOMStore();
 
   // Listen to shared URL parameters on mount
@@ -70,7 +74,10 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#090a0f] text-slate-100 flex flex-col font-sans selection:bg-sky-500/20 selection:text-sky-300">
       {/* Top Header */}
-      <Header />
+      <Header
+        onOpenAddDevice={() => setIsAddDeviceOpen(true)}
+        onOpenTemplates={() => setIsTemplatesOpen(true)}
+      />
 
       {/* Hero / Value Proposition Strip */}
       <section className="relative px-4 lg:px-8 py-6 border-b border-white/5 bg-gradient-to-b from-sky-950/20 via-transparent to-transparent">
@@ -129,6 +136,18 @@ export const App: React.FC = () => {
       <DeviceDiffModal
         isOpen={isDiffModalOpen}
         onClose={() => setIsDiffModalOpen(false)}
+      />
+
+      {/* Add Custom Device Modal */}
+      <AddDeviceModal
+        isOpen={isAddDeviceOpen}
+        onClose={() => setIsAddDeviceOpen(false)}
+      />
+
+      {/* Scene Templates Modal */}
+      <SceneTemplateModal
+        isOpen={isTemplatesOpen}
+        onClose={() => setIsTemplatesOpen(false)}
       />
 
       {/* BOM Drawer */}

@@ -1,8 +1,13 @@
 import React from 'react';
-import { Network, FileSpreadsheet, GitCompare, Search, ShieldCheck } from 'lucide-react';
+import { Network, FileSpreadsheet, GitCompare, Search, ShieldCheck, Plus, Layers } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenAddDevice?: () => void;
+  onOpenTemplates?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates }) => {
   const {
     items,
     isDrawerOpen,
@@ -88,7 +93,31 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* Templates Trigger */}
+          {onOpenTemplates && (
+            <button
+              onClick={onOpenTemplates}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl glass-panel text-slate-300 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors"
+              title="载入行业拓扑预置模板"
+            >
+              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+              <span>拓扑模板</span>
+            </button>
+          )}
+
+          {/* Add Device Trigger */}
+          {onOpenAddDevice && (
+            <button
+              onClick={onOpenAddDevice}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/25 text-sky-300 text-xs font-semibold transition-colors"
+              title="录入新设备规格"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">录入设备</span>
+            </button>
+          )}
+
           {/* Compare Button */}
           {diffDeviceIds.length > 0 && (
             <button

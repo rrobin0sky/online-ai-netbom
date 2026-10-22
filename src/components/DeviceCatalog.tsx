@@ -6,6 +6,7 @@ import { SearchX, Filter } from 'lucide-react';
 
 export const DeviceCatalog: React.FC = () => {
   const {
+    customDevices,
     searchQuery,
     selectedBrand,
     selectedCategory,
@@ -14,8 +15,12 @@ export const DeviceCatalog: React.FC = () => {
     hideEol,
   } = useBOMStore();
 
+  const allDevices = useMemo(() => {
+    return [...customDevices, ...SEED_DEVICES];
+  }, [customDevices]);
+
   const filteredDevices = useMemo(() => {
-    return SEED_DEVICES.filter((d) => {
+    return allDevices.filter((d) => {
       // 1. Text Search (model, series, part_number, description, tags)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -71,6 +76,7 @@ export const DeviceCatalog: React.FC = () => {
       return true;
     });
   }, [
+    allDevices,
     searchQuery,
     selectedBrand,
     selectedCategory,

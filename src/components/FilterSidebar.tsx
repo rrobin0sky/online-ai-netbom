@@ -17,7 +17,10 @@ export const FilterSidebar: React.FC = () => {
     setHideEol,
     searchQuery,
     setSearchQuery,
+    customDevices,
   } = useBOMStore();
+
+  const allDevices = [...customDevices, ...SEED_DEVICES];
 
   const brands = [
     { id: 'all', label: '全部品牌' },
@@ -42,8 +45,8 @@ export const FilterSidebar: React.FC = () => {
     { id: '25G', label: '超高密 25GE' },
   ];
 
-  const totalDevices = SEED_DEVICES.length;
-  const verifiedCount = SEED_DEVICES.filter((d) => d.metadata.specs_verified_at).length;
+  const totalDevices = allDevices.length;
+  const verifiedCount = allDevices.filter((d) => d.metadata.specs_verified_at).length;
 
   return (
     <aside className="w-full lg:w-64 flex-shrink-0 space-y-6">
@@ -81,7 +84,7 @@ export const FilterSidebar: React.FC = () => {
               <span className="text-[10px] font-mono text-slate-500">
                 {b.id === 'all'
                   ? totalDevices
-                  : SEED_DEVICES.filter((d) => d.brand === b.id).length}
+                  : allDevices.filter((d) => d.brand === b.id).length}
               </span>
             </button>
           ))}

@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { DeviceItem, BOMItem } from '../types/device';
-import { AccessoryItem } from '../data/seedDevices';
+import { AccessoryItem, SEED_DEVICES, SEED_ACCESSORIES } from '../data/seedDevices';
+import { SCENE_TEMPLATES } from '../data/templates';
 import LZString from 'lz-string';
 
 interface BOMState {
@@ -15,6 +16,7 @@ interface BOMState {
 
   // BOM Cart Items
   items: BOMItem[];
+  customDevices: DeviceItem[];
 
   // UI state
   isDrawerOpen: boolean;
@@ -44,6 +46,8 @@ interface BOMState {
   updateItemNotes: (uid: string, notes: string) => void;
   addAccessoryToItem: (uid: string, accessory: AccessoryItem, quantity?: number) => void;
   removeAccessoryFromItem: (uid: string, accessoryId: string) => void;
+  addCustomDevice: (device: DeviceItem) => void;
+  loadSceneTemplate: (templateId: string) => void;
   clearBOM: () => void;
 
   toggleDrawer: () => void;
@@ -74,6 +78,7 @@ export const useBOMStore = create<BOMState>()(
       taxRate: 0.13,
 
       items: [],
+      customDevices: [],
       isDrawerOpen: false,
       diffDeviceIds: [],
 
@@ -216,6 +221,54 @@ export const useBOMStore = create<BOMState>()(
         }));
       },
 
+      addCustomDevice: (device) => {
+        set((state) => ({
+          customDevices: [device, ...state.customDevices.filter((d) => d.id !== device.id)],
+        }));
+      },
+
+      loadSceneTemplate: (templateId) => {
+        const template = SCENE_TEMPLATES.find((t) => t.id === templateId);
+        if (!template) return;
+
+        const allAvailableDevices = [...SEED_DEVICES, ...get().customDevices];
+        const newItems: BOMItem[] = [];
+
+        template.items.forEach((itemDef) => {
+          const device = allAvailableDevices.find((d) => d.id === itemDef.deviceId);
+          if (!device) return;
+
+          const accessories = (itemDef.accessories || []).map((accDef) => {
+            const acc = SEED_ACCESSORIES.find((a) => a.id === accDef.accessoryId);
+            return {
+              accessoryId: accDef.accessoryId,
+              accessoryName: acc ? acc.name : '网络配件',
+              partNumber: acc ? acc.part_number : '',
+              quantity: accDef.quantity,
+              unitPrice: acc ? acc.reference_price : 0,
+            };
+          });
+
+          newItems.push({
+            uid: `${device.id}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            device,
+            quantity: itemDef.quantity,
+            areaGroup: itemDef.areaGroup,
+            customUnitPrice: null,
+            itemDiscountRate: null,
+            notes: `来源于「${template.name}」典型场景方案`,
+            selectedAccessories: accessories,
+          });
+        });
+
+        set({
+          projectName: template.name,
+          globalDiscountRate: template.recommendedDiscount,
+          items: newItems,
+          isDrawerOpen: true,
+        });
+      },
+
       clearBOM: () => set({ items: [] }),
 
       toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
@@ -292,6 +345,7 @@ export const useBOMStore = create<BOMState>()(
         targetMarginRate: state.targetMarginRate,
         taxRate: state.taxRate,
         items: state.items,
+        customDevices: state.customDevices,
       }),
     }
   )
