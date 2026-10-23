@@ -1,8 +1,12 @@
 import React, { useMemo } from 'react';
 import { DeviceCard } from './DeviceCard';
-import { useBOMStore, getMergedCatalog } from '../store/useBOMStore';
+import {
+  useBOMStore,
+  getMergedCatalog,
+  getDeletedDevicesCatalog,
+} from '../store/useBOMStore';
 import { DeviceItem } from '../types/device';
-import { SearchX } from 'lucide-react';
+import { SearchX, RotateCcw, Trash2 } from 'lucide-react';
 
 interface DeviceCatalogProps {
   onEditDevice?: (device: DeviceItem) => void;
@@ -12,6 +16,7 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
   const {
     customDevices,
     deletedDeviceIds,
+    deletedCustomDevices,
     brandRenames,
     searchQuery,
     selectedBrand,
@@ -19,13 +24,40 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
     selectedSpeed,
     poeOnly,
     hideEol,
+    recentOnly,
+    unpricedOnly,
+    trashView,
+    setTrashView,
+    restoreDefaultDevices,
+    globalDiscountRate,
   } = useBOMStore();
 
   const allDevices = useMemo(() => {
+    if (trashView) {
+      return getDeletedDevicesCatalog(
+        deletedDeviceIds,
+        deletedCustomDevices,
+        brandRenames
+      );
+    }
     return getMergedCatalog(customDevices, deletedDeviceIds, brandRenames);
-  }, [customDevices, deletedDeviceIds, brandRenames]);
+  }, [
+    trashView,
+    customDevices,
+    deletedDeviceIds,
+    deletedCustomDevices,
+    brandRenames,
+  ]);
+
+  const customIds = useMemo(
+    () => new Set(customDevices.map((c) => c.id)),
+    [customDevices]
+  );
 
   const filteredDevices = useMemo(() => {
+    const now = Date.now();
+    const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
+
     return allDevices.filter((d) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -33,7 +65,9 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
         const matchesSeries = d.series.toLowerCase().includes(q);
         const matchesPn = d.part_number.toLowerCase().includes(q);
         const matchesDesc = d.description.toLowerCase().includes(q);
-        const matchesTags = d.metadata.tags.some((t) => t.toLowerCase().includes(q));
+        const matchesTags = d.metadata.tags.some((t) =>
+          t.toLowerCase().includes(q)
+        );
         const matchesPorts = d.specs.ports.summary.toLowerCase().includes(q);
         if (
           !matchesModel &&
@@ -45,6 +79,10 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
         ) {
           return false;
         }
+      }
+
+      if (trashView) {
+        return true;
       }
 
       if (selectedBrand !== 'all' && d.brand !== selectedBrand) {
@@ -71,26 +109,86 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
         return false;
       }
 
+      if (recentOnly && !customIds.has(d.id)) {
+        return false;
+      }
+
+      if (unpricedOnly) {
+        const gpl = d.pricing.list_price_gpl;
+        const discount = d.pricing.discount_reference ?? globalDiscountRate;
+        const price =
+          d.pricing.cost_estimate !== null
+            ? d.pricing.cost_estimate
+            : gpl !== null
+            ? Math.round(gpl * discount)
+            : null;
+        const verifiedDate = d.pricing.price_verified_at
+          ? Date.parse(d.pricing.price_verified_at)
+          : NaN;
+        const isExpired =
+          isNaN(verifiedDate) || now - verifiedDate > ninetyDaysMs;
+        if (price !== null && !isExpired) {
+          return false;
+        }
+      }
+
       return true;
     });
   }, [
     allDevices,
+    trashView,
     searchQuery,
     selectedBrand,
     selectedCategory,
     selectedSpeed,
     poeOnly,
     hideEol,
+    recentOnly,
+    unpricedOnly,
+    customIds,
+    globalDiscountRate,
   ]);
 
   return (
-    <div className="flex-1 min-w-0">
+    <div className="flex-1 min-w-0 space-y-3">
+      {/* Recycle Bin Header Bar when in Trash View */}
+      {trashView && (
+        <div className="glass-panel rounded-xl px-4 py-2.5 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 text-zinc-300">
+            <Trash2 className="w-3.5 h-3.5 text-zinc-400" />
+            <span>
+              回收站（共 {filteredDevices.length} 台已删除设备，可单独还原或全部还原）
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {filteredDevices.length > 0 && (
+              <button
+                type="button"
+                onClick={restoreDefaultDevices}
+                className="h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-200 hover:text-white inline-flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3 text-zinc-400" />
+                <span>全部还原</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setTrashView(false)}
+              className="h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-300 hover:text-white"
+            >
+              返回列表
+            </button>
+          </div>
+        </div>
+      )}
+
       {filteredDevices.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 items-start">
           {filteredDevices.map((device) => (
             <DeviceCard
               key={device.id}
               device={device}
+              isTrash={trashView}
               onEditDevice={onEditDevice}
             />
           ))}
@@ -98,7 +196,15 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
       ) : (
         <div className="glass-panel rounded-2xl p-10 text-center space-y-3 max-w-sm mx-auto my-8">
           <SearchX className="w-7 h-7 text-zinc-500 mx-auto" />
-          <div className="text-sm font-bold text-zinc-200">无匹配设备</div>
+          <div className="text-sm font-bold text-zinc-200">
+            {trashView
+              ? '回收站为空'
+              : recentOnly
+              ? '暂无最近录入的设备'
+              : unpricedOnly
+              ? '暂无待核价或价格过期的设备'
+              : '无匹配设备'}
+          </div>
         </div>
       )}
     </div>

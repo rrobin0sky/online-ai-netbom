@@ -22,13 +22,16 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const {
     items,
+    serviceItems,
     toggleDrawer,
     diffDeviceIds,
     searchQuery,
     setSearchQuery,
   } = useBOMStore();
 
-  const totalItemCount = items.reduce((acc, cur) => acc + cur.quantity, 0);
+  const totalItemCount =
+    items.reduce((acc, cur) => acc + cur.quantity, 0) +
+    (serviceItems || []).length;
 
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-4 lg:px-8 py-2.5">
@@ -68,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="搜索型号、P/N、端口规格..."
+              placeholder="搜索型号、P/N、弱电材料、布线人工..."
               className="w-full h-8 glass-input rounded-lg pl-9 pr-8 text-xs placeholder:text-zinc-500"
             />
             {searchQuery && (

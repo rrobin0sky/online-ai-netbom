@@ -1,9 +1,25 @@
 import React, { useState } from 'react';
-import { RotateCcw, Plus, Edit3, X, Check, Settings2 } from 'lucide-react';
-import { useBOMStore, getMergedCatalog, DEFAULT_BRANDS } from '../store/useBOMStore';
+import { RotateCcw, Plus, Edit3, X, Check, Settings2, Trash2 } from 'lucide-react';
+import {
+  useBOMStore,
+  getMergedCatalog,
+  getMergedServiceCatalog,
+  DEFAULT_BRANDS,
+  DEFAULT_SERVICE_CATEGORIES,
+} from '../store/useBOMStore';
 
-export const FilterSidebar: React.FC = () => {
+interface FilterSidebarProps {
+  onOpenAddService?: () => void;
+}
+
+export const FilterSidebar: React.FC<FilterSidebarProps> = ({
+  onOpenAddService,
+}) => {
   const {
+    workspaceTab,
+    setWorkspaceTab,
+    selectedServiceCategory,
+    setSelectedServiceCategory,
     selectedBrand,
     setSelectedBrand,
     selectedCategory,
@@ -14,11 +30,19 @@ export const FilterSidebar: React.FC = () => {
     setPoeOnly,
     hideEol,
     setHideEol,
+    recentOnly,
+    setRecentOnly,
+    unpricedOnly,
+    setUnpricedOnly,
+    trashView,
+    setTrashView,
     searchQuery,
     setSearchQuery,
     customDevices,
     deletedDeviceIds,
-    restoreDefaultDevices,
+    customServices,
+    deletedServiceIds,
+    restoreDefaultServices,
     brands,
     brandRenames,
     addBrand,
@@ -34,6 +58,7 @@ export const FilterSidebar: React.FC = () => {
 
   const activeBrands = brands?.length ? brands : DEFAULT_BRANDS;
   const allDevices = getMergedCatalog(customDevices, deletedDeviceIds, brandRenames);
+  const allServices = getMergedServiceCatalog(customServices, deletedServiceIds);
 
   const layers = [
     { id: 'all', label: '全部' },
@@ -80,7 +105,7 @@ export const FilterSidebar: React.FC = () => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="搜索型号、P/N..."
+          placeholder="搜索型号、线材、人工、费用..."
           className="w-full h-8 glass-input rounded-lg px-3 text-xs"
         />
       </div>
@@ -89,183 +114,283 @@ export const FilterSidebar: React.FC = () => {
       <div className="glass-panel rounded-xl px-3.5 py-2.5 space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
           <div className="flex flex-wrap items-center gap-y-2 gap-x-3">
-            {/* Brand Pills + Manage Toggle */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs text-zinc-500 mr-0.5 font-medium">品牌</span>
+            {/* Workspace Mode Switcher: 网络设备 vs 弱电与服务 */}
+            <div className="flex items-center gap-1 pr-2 border-r border-white/10">
               <button
-                onClick={() => setSelectedBrand('all')}
-                className={pillClass(selectedBrand === 'all')}
+                type="button"
+                onClick={() => setWorkspaceTab('devices')}
+                className={pillClass(workspaceTab === 'devices')}
               >
-                <span>全部</span>
+                <span>网络设备</span>
                 <span className="text-[10px] font-mono text-zinc-500">
                   {allDevices.length}
                 </span>
               </button>
+              <button
+                type="button"
+                onClick={() => setWorkspaceTab('services')}
+                className={pillClass(workspaceTab === 'services')}
+              >
+                <span>弱电与服务</span>
+                <span className="text-[10px] font-mono text-zinc-500">
+                  {allServices.length}
+                </span>
+              </button>
+            </div>
 
-              {activeBrands.map((b) => {
-                const count = allDevices.filter((d) => d.brand === b).length;
-                if (editingBrand === b) {
-                  return (
-                    <div
-                      key={b}
-                      className="h-7 inline-flex items-center gap-1 bg-zinc-900 border border-white/20 rounded-md px-2"
-                    >
-                      <input
-                        type="text"
-                        value={editingBrandValue}
-                        onChange={(e) => setEditingBrandValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleConfirmRename(b);
-                          if (e.key === 'Escape') setEditingBrand(null);
-                        }}
-                        autoFocus
-                        className="w-20 bg-transparent text-xs text-zinc-100 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleConfirmRename(b)}
-                        className="text-zinc-300 hover:text-white"
-                        title="保存"
-                      >
-                        <Check className="w-3 h-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingBrand(null)}
-                        className="text-zinc-500 hover:text-zinc-300"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  );
-                }
+            {workspaceTab === 'devices' ? (
+              <>
+                {/* Brand Pills + Manage Toggle */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs text-zinc-500 mr-0.5 font-medium">品牌</span>
+                  <button
+                    onClick={() => setSelectedBrand('all')}
+                    className={pillClass(selectedBrand === 'all')}
+                  >
+                    <span>全部</span>
+                  </button>
 
-                return (
-                  <div key={b} className="inline-flex items-center">
+                  {activeBrands.map((b) => {
+                    const count = allDevices.filter((d) => d.brand === b).length;
+                    if (editingBrand === b) {
+                      return (
+                        <div
+                          key={b}
+                          className="h-7 inline-flex items-center gap-1 bg-zinc-900 border border-white/20 rounded-md px-2"
+                        >
+                          <input
+                            type="text"
+                            value={editingBrandValue}
+                            onChange={(e) => setEditingBrandValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleConfirmRename(b);
+                              if (e.key === 'Escape') setEditingBrand(null);
+                            }}
+                            autoFocus
+                            className="w-20 bg-transparent text-xs text-zinc-100 focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleConfirmRename(b)}
+                            className="text-zinc-300 hover:text-white"
+                            title="保存"
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingBrand(null)}
+                            className="text-zinc-500 hover:text-zinc-300"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={b} className="inline-flex items-center">
+                        <button
+                          onClick={() => setSelectedBrand(b)}
+                          className={pillClass(selectedBrand === b)}
+                        >
+                          <span>{b}</span>
+                          <span className="text-[10px] font-mono text-zinc-500">
+                            {count}
+                          </span>
+                        </button>
+
+                        {isManagingBrands && (
+                          <div className="h-7 inline-flex items-center gap-0.5 ml-1 bg-white/[0.04] border border-white/10 rounded-md px-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingBrand(b);
+                                setEditingBrandValue(b);
+                              }}
+                              className="text-zinc-400 hover:text-white p-0.5"
+                              title="改名"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`确定移除品牌「${b}」吗？`)) {
+                                  deleteBrand(b);
+                                }
+                              }}
+                              className="text-zinc-500 hover:text-zinc-200 p-0.5"
+                              title="删除"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsManagingBrands(!isManagingBrands)}
+                    className={pillClass(isManagingBrands)}
+                    title="管理品牌"
+                  >
+                    <Settings2 className="w-3.5 h-3.5" />
+                    {isManagingBrands && <span>完成</span>}
+                  </button>
+                </div>
+
+                <div className="hidden xl:block h-4 w-[1px] bg-white/10" />
+
+                {/* Layer Pills */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs text-zinc-500 mr-0.5 font-medium">层级</span>
+                  {layers.map((l) => (
                     <button
-                      onClick={() => setSelectedBrand(b)}
-                      className={pillClass(selectedBrand === b)}
+                      key={l.id}
+                      onClick={() => setSelectedCategory(l.id)}
+                      className={pillClass(selectedCategory === l.id)}
                     >
-                      <span>{b}</span>
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="hidden xl:block h-4 w-[1px] bg-white/10" />
+
+                {/* Speed Pills */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs text-zinc-500 mr-0.5 font-medium">速率</span>
+                  {speeds.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setSelectedSpeed(s.id)}
+                      className={pillClass(selectedSpeed === s.id)}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              /* Low-voltage / Service Categories */
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-zinc-500 mr-0.5 font-medium">类型</span>
+                <button
+                  onClick={() => setSelectedServiceCategory('all')}
+                  className={pillClass(selectedServiceCategory === 'all')}
+                >
+                  <span>全部</span>
+                  <span className="text-[10px] font-mono text-zinc-500">
+                    {allServices.length}
+                  </span>
+                </button>
+                {DEFAULT_SERVICE_CATEGORIES.map((cat) => {
+                  const count = allServices.filter((s) => s.category === cat).length;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedServiceCategory(cat)}
+                      className={pillClass(selectedServiceCategory === cat)}
+                    >
+                      <span>{cat}</span>
                       <span className="text-[10px] font-mono text-zinc-500">
                         {count}
                       </span>
                     </button>
-
-                    {isManagingBrands && (
-                      <div className="h-7 inline-flex items-center gap-0.5 ml-1 bg-white/[0.04] border border-white/10 rounded-md px-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingBrand(b);
-                            setEditingBrandValue(b);
-                          }}
-                          className="text-zinc-400 hover:text-white p-0.5"
-                          title="改名"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm(`确定移除品牌「${b}」吗？`)) {
-                              deleteBrand(b);
-                            }
-                          }}
-                          className="text-zinc-500 hover:text-zinc-200 p-0.5"
-                          title="删除"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* Manage Brands Button */}
-              <button
-                type="button"
-                onClick={() => setIsManagingBrands(!isManagingBrands)}
-                className={pillClass(isManagingBrands)}
-                title="管理品牌"
-              >
-                <Settings2 className="w-3.5 h-3.5" />
-                {isManagingBrands && <span>完成</span>}
-              </button>
-            </div>
-
-            <div className="hidden xl:block h-4 w-[1px] bg-white/10" />
-
-            {/* Layer Pills */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs text-zinc-500 mr-0.5 font-medium">层级</span>
-              {layers.map((l) => (
-                <button
-                  key={l.id}
-                  onClick={() => setSelectedCategory(l.id)}
-                  className={pillClass(selectedCategory === l.id)}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="hidden xl:block h-4 w-[1px] bg-white/10" />
-
-            {/* Speed Pills */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs text-zinc-500 mr-0.5 font-medium">速率</span>
-              {speeds.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedSpeed(s.id)}
-                  className={pillClass(selectedSpeed === s.id)}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Toggles & Reset */}
-          <div className="flex items-center gap-3 text-xs ml-auto">
-            <label className="flex items-center gap-1.5 cursor-pointer select-none text-zinc-400 hover:text-zinc-200">
-              <input
-                type="checkbox"
-                checked={poeOnly}
-                onChange={(e) => setPoeOnly(e.target.checked)}
-                className="rounded border-zinc-700 bg-zinc-900 w-3.5 h-3.5 accent-zinc-400"
-              />
-              <span>PoE</span>
-            </label>
-
-            <label className="flex items-center gap-1.5 cursor-pointer select-none text-zinc-400 hover:text-zinc-200">
-              <input
-                type="checkbox"
-                checked={hideEol}
-                onChange={(e) => setHideEol(e.target.checked)}
-                className="rounded border-zinc-700 bg-zinc-900 w-3.5 h-3.5 accent-zinc-400"
-              />
-              <span>隐藏停产</span>
-            </label>
-
-            {deletedDeviceIds.length > 0 && (
-              <button
-                type="button"
-                onClick={restoreDefaultDevices}
-                className={pillClass(false)}
-                title="恢复已删除的默认设备"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>恢复默认</span>
-              </button>
+                  );
+                })}
+              </div>
             )}
           </div>
+
+          {/* Right Quick Filter Pills: PoE | 隐藏停产 | 最近录入 | 待核价 | 回收站 */}
+          {workspaceTab === 'devices' ? (
+            <div className="flex items-center gap-1.5 flex-wrap ml-auto">
+              <button
+                type="button"
+                onClick={() => setPoeOnly(!poeOnly)}
+                className={pillClass(poeOnly)}
+              >
+                <span>PoE</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHideEol(!hideEol)}
+                className={pillClass(hideEol)}
+              >
+                <span>隐藏停产</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRecentOnly(!recentOnly)}
+                className={pillClass(recentOnly)}
+                title="仅显示我导入或新增的设备"
+              >
+                <span>最近录入</span>
+                {customDevices.length > 0 && (
+                  <span className="text-[10px] font-mono text-zinc-500">
+                    {customDevices.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setUnpricedOnly(!unpricedOnly)}
+                className={pillClass(unpricedOnly)}
+                title="筛选未填单价或价格超过90天未更新的设备"
+              >
+                <span>待核价</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTrashView(!trashView)}
+                className={pillClass(trashView)}
+                title="查看并恢复已删除的设备"
+              >
+                <Trash2 className="w-3 h-3 text-zinc-400" />
+                <span>回收站</span>
+                {deletedDeviceIds.length > 0 && (
+                  <span className="text-[10px] font-mono text-zinc-500">
+                    {deletedDeviceIds.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs ml-auto">
+              {onOpenAddService && (
+                <button
+                  type="button"
+                  onClick={onOpenAddService}
+                  className={pillClass(false)}
+                >
+                  <Plus className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>新增条目</span>
+                </button>
+              )}
+              {(deletedServiceIds || []).length > 0 && (
+                <button
+                  type="button"
+                  onClick={restoreDefaultServices}
+                  className={pillClass(false)}
+                >
+                  <RotateCcw className="w-3 h-3 text-zinc-400" />
+                  <span>回收站还原 ({deletedServiceIds.length})</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Inline Brand Management Strip */}
-        {isManagingBrands && (
+        {workspaceTab === 'devices' && isManagingBrands && (
           <div className="pt-2.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
             <form onSubmit={handleAddBrand} className="flex items-center gap-2">
               <input

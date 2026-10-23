@@ -25,6 +25,14 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Embedded in BinOS Workstation */
+  html.b0-embedded main {
+    padding-top: 0.5rem;
   }
 
   body {

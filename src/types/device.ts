@@ -84,8 +84,9 @@ export interface BOMItem {
   areaGroup: string; // e.g. "核心层", "接入层", "服务器机房", "外联区"
   
   // Custom pricing override per item
-  customUnitPrice: number | null; // If null, uses calculated price from GPL * discount
+  customUnitPrice: number | null; // 未税单价 override (if null, derived from cost_estimate or GPL)
   itemDiscountRate: number | null; // If null, uses global discount
+  itemTaxRate?: number; // 单行独立增值税率 (e.g. 0.13, 0.09, 0.06, 0.03, 0)
   notes?: string;
 
   // Selected accessories with quantity

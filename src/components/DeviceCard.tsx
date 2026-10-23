@@ -9,19 +9,25 @@ import {
   ChevronUp,
   Edit3,
   Trash2,
+  RotateCcw,
 } from 'lucide-react';
 import { DeviceItem } from '../types/device';
 import { useBOMStore } from '../store/useBOMStore';
 
 interface DeviceCardProps {
   device: DeviceItem;
+  isTrash?: boolean;
   onEditDevice?: (device: DeviceItem) => void;
 }
 
 const CARD_BTN =
   'h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-200 hover:text-white text-xs font-medium inline-flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap';
 
-export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) => {
+export const DeviceCard: React.FC<DeviceCardProps> = ({
+  device,
+  isTrash = false,
+  onEditDevice,
+}) => {
   const {
     items,
     addItem,
@@ -29,6 +35,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
     diffDeviceIds,
     globalDiscountRate,
     deleteDevice,
+    restoreDevice,
   } = useBOMStore();
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -69,9 +76,12 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm(`确定从设备库中删除「${device.brand} ${device.model}」吗？`)) {
-      deleteDevice(device.id);
-    }
+    deleteDevice(device.id);
+  };
+
+  const handleRestore = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    restoreDevice(device.id);
   };
 
   return (
@@ -96,7 +106,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
                 {device.model}
               </h3>
               {isEol && (
-                <span className="text-[10px] font-medium text-zinc-400 bg-white/[0.05] border border-white/10 px-1.5 py-0.5 rounded">
+                <span className="text-[11px] font-medium text-zinc-400 bg-white/[0.05] border border-white/10 px-1.5 py-0.5 rounded">
                   停产
                 </span>
               )}
@@ -114,7 +124,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
                   ¥{unitPrice.toLocaleString()}
                 </div>
                 {gpl !== null && (
-                  <div className="text-[10px] font-mono text-zinc-500">
+                  <div className="text-[11px] font-mono text-zinc-400">
                     指导价 ¥{gpl.toLocaleString()}
                   </div>
                 )}
@@ -128,7 +138,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
         </div>
       </div>
 
-      {/* Action Bar: Expand Toggle + Quantity Stepper + Add to BOM */}
+      {/* Action Bar */}
       <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-white/5">
         <button
           type="button"
@@ -148,56 +158,67 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
           )}
         </button>
 
-        <div className="flex items-center gap-1.5">
-          {/* Quantity Selector */}
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center bg-white/[0.04] border border-white/10 rounded-md overflow-hidden h-7"
-          >
-            <button
-              type="button"
-              onClick={() => setAddQty((q) => Math.max(1, q - 1))}
-              className="w-6 h-full flex items-center justify-center hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
-            >
-              <Minus className="w-3 h-3" />
-            </button>
-            <input
-              type="number"
-              min={1}
-              value={addQty}
-              onChange={(e) => setAddQty(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-7 text-center bg-transparent font-mono text-xs font-medium text-zinc-100 focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => setAddQty((q) => q + 1)}
-              className="w-6 h-full flex items-center justify-center hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
-            >
-              <Plus className="w-3 h-3" />
-            </button>
-          </div>
-
-          {/* Add to BOM Button (Same unified color & size, concise text "清单") */}
+        {isTrash ? (
           <button
             type="button"
-            onClick={handleAddToBOM}
-            className={`${CARD_BTN} ${
-              isAdded ? 'bg-white/[0.12] border-white/25 text-white' : ''
-            }`}
+            onClick={handleRestore}
+            className={CARD_BTN}
           >
-            {isAdded ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>已加{inBomQuantity > 0 ? ` (${inBomQuantity})` : ''}</span>
-              </>
-            ) : (
-              <>
-                <Plus className="w-3.5 h-3.5 text-zinc-400" />
-                <span>清单</span>
-              </>
-            )}
+            <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
+            <span>还原</span>
           </button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            {/* Quantity Selector */}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center bg-white/[0.04] border border-white/10 rounded-md overflow-hidden h-7"
+            >
+              <button
+                type="button"
+                onClick={() => setAddQty((q) => Math.max(1, q - 1))}
+                className="w-6 h-full flex items-center justify-center hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+              >
+                <Minus className="w-3 h-3" />
+              </button>
+              <input
+                type="number"
+                min={1}
+                value={addQty}
+                onChange={(e) => setAddQty(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-7 text-center bg-transparent font-mono text-xs font-medium text-zinc-100 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setAddQty((q) => q + 1)}
+                className="w-6 h-full flex items-center justify-center hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Add to BOM Button */}
+            <button
+              type="button"
+              onClick={handleAddToBOM}
+              className={`${CARD_BTN} ${
+                isAdded ? 'bg-white/[0.12] border-white/25 text-white' : ''
+              }`}
+            >
+              {isAdded ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>已加{inBomQuantity > 0 ? ` (${inBomQuantity})` : ''}</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>清单</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Collapsible Detailed Parameters Section */}
@@ -256,7 +277,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
             </p>
           )}
 
-          {/* Secondary Utility Actions (Uniform Button Style) */}
+          {/* Secondary Utility Actions */}
           <div className="flex items-center justify-between gap-1.5 pt-1">
             <a
               href={device.metadata.official_spec_url}
@@ -268,39 +289,41 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
               <span>官网</span>
             </a>
 
-            <div className="flex items-center gap-1.5">
-              {onEditDevice && (
+            {!isTrash && (
+              <div className="flex items-center gap-1.5">
+                {onEditDevice && (
+                  <button
+                    type="button"
+                    onClick={() => onEditDevice(device)}
+                    className={CARD_BTN}
+                  >
+                    <Edit3 className="w-3 h-3 text-zinc-400" />
+                    <span>编辑</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={() => onEditDevice(device)}
-                  className={CARD_BTN}
+                  onClick={() => toggleDiffDevice(device.id)}
+                  className={`${CARD_BTN} ${
+                    isDiffSelected ? 'bg-white/[0.12] border-white/25 text-white' : ''
+                  }`}
                 >
-                  <Edit3 className="w-3 h-3 text-zinc-400" />
-                  <span>编辑</span>
+                  <GitCompare className="w-3 h-3 text-zinc-400" />
+                  <span>对比</span>
                 </button>
-              )}
 
-              <button
-                type="button"
-                onClick={() => toggleDiffDevice(device.id)}
-                className={`${CARD_BTN} ${
-                  isDiffSelected ? 'bg-white/[0.12] border-white/25 text-white' : ''
-                }`}
-              >
-                <GitCompare className="w-3 h-3 text-zinc-400" />
-                <span>对比</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDelete}
-                className={CARD_BTN}
-                title="删除此设备"
-              >
-                <Trash2 className="w-3 h-3 text-zinc-400" />
-                <span>删除</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className={CARD_BTN}
+                  title="移入回收站"
+                >
+                  <Trash2 className="w-3 h-3 text-zinc-400" />
+                  <span>删除</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

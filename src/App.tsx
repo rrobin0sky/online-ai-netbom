@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { FilterSidebar } from './components/FilterSidebar';
 import { DeviceCatalog } from './components/DeviceCatalog';
+import { ServiceCatalog } from './components/ServiceCatalog';
 import { BOMDrawer } from './components/BOMDrawer';
 import { DeviceDiffModal } from './components/DeviceDiffModal';
 import { AddDeviceModal } from './components/AddDeviceModal';
@@ -16,14 +17,21 @@ import { BOMItem, DeviceItem } from './types/device';
 export const App: React.FC = () => {
   const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
+  const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<DeviceItem | null>(null);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isAIImportOpen, setIsAIImportOpen] = useState(false);
   const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
 
-  const { setDrawerOpen, items, customDevices, deletedDeviceIds } = useBOMStore();
+  const {
+    workspaceTab,
+    setDrawerOpen,
+    items,
+    serviceItems,
+    customDevices,
+    deletedDeviceIds,
+  } = useBOMStore();
 
-  // Restore shared BOM from URL query parameter if present
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -45,6 +53,7 @@ export const App: React.FC = () => {
                   areaGroup: itemMeta.g || '接入层',
                   customUnitPrice: itemMeta.p || null,
                   itemDiscountRate: itemMeta.d || null,
+                  itemTaxRate: itemMeta.tx ?? 0.13,
                   notes: itemMeta.n || '',
                   selectedAccessories: itemMeta.acc || [],
                 });
@@ -69,6 +78,9 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  const totalCount =
+    items.reduce((s, i) => s + i.quantity, 0) + (serviceItems || []).length;
+
   return (
     <div className="min-h-screen bg-[#090a0f] text-zinc-100 flex flex-col font-sans selection:bg-white/20 selection:text-white">
       {/* Top Workspace Header */}
@@ -77,15 +89,22 @@ export const App: React.FC = () => {
         onOpenTemplates={() => setIsTemplatesOpen(true)}
       />
 
-      {/* Main Workspace Layout: Top Horizontal Filter Bar + Full-Width Device Grid */}
+      {/* Main Workspace Layout: Top Horizontal Filter Bar + Catalog Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-4 flex flex-col gap-4">
-        <FilterSidebar />
-        <DeviceCatalog
-          onEditDevice={(dev) => {
-            setEditingDevice(dev);
-            setIsAddDeviceOpen(true);
-          }}
-        />
+        <FilterSidebar onOpenAddService={() => setIsAddServiceOpen(true)} />
+        {workspaceTab === 'devices' ? (
+          <DeviceCatalog
+            onEditDevice={(dev) => {
+              setEditingDevice(dev);
+              setIsAddDeviceOpen(true);
+            }}
+          />
+        ) : (
+          <ServiceCatalog
+            isAddModalOpen={isAddServiceOpen}
+            onCloseAddModal={() => setIsAddServiceOpen(false)}
+          />
+        )}
       </main>
 
       {/* Hidden trigger for Diff Modal */}
@@ -129,14 +148,14 @@ export const App: React.FC = () => {
       <BOMDrawer />
 
       {/* Mobile Floating BOM Pill */}
-      {items.length > 0 && (
+      {totalCount > 0 && (
         <div className="fixed bottom-5 right-5 z-30 lg:hidden">
           <button
             onClick={() => setDrawerOpen(true)}
             className="h-9 px-4 rounded-full bg-zinc-900 border border-white/20 text-zinc-100 font-medium text-xs shadow-2xl inline-flex items-center gap-2"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-zinc-400" />
-            <span>清单 ({items.reduce((s, i) => s + i.quantity, 0)})</span>
+            <span>清单 ({totalCount})</span>
           </button>
         </div>
       )}

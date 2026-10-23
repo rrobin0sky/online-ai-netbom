@@ -2,31 +2,46 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { DeviceItem, BOMItem } from '../types/device';
 import { AccessoryItem, SEED_DEVICES, SEED_ACCESSORIES } from '../data/seedDevices';
+import { EngineeringItem, BOMServiceItem, SEED_SERVICES } from '../data/seedServices';
 import { SCENE_TEMPLATES, ProjectTemplate } from '../data/templates';
 import LZString from 'lz-string';
 
 export const DEFAULT_BRANDS = ['Huawei', 'H3C', 'Cisco', 'Ruijie', 'FS.com'];
+export const DEFAULT_SERVICE_CATEGORIES = ['弱电材料', '布线人工', '作业费', '项目管理费'];
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
 
 interface BOMState {
   // Project settings
   projectName: string;
   clientName: string;
   creatorName: string;
-  globalDiscountRate: number; // e.g. 0.3 for 30%
-  targetMarginRate: number;   // e.g. 0.25 for 25% margin
-  taxRate: number;            // e.g. 0.13 for 13% VAT
+  quoteValidityDays: number;
+  globalDiscountRate: number;
+  targetMarginRate: number;
+  taxRate: number; // Default equipment VAT rate (e.g. 0.13)
+
+  // Workspace view mode
+  workspaceTab: 'devices' | 'services';
+  selectedServiceCategory: string;
 
   // BOM Cart Items & Catalog customizations
   items: BOMItem[];
+  serviceItems: BOMServiceItem[];
   customDevices: DeviceItem[];
   deletedDeviceIds: string[];
+  deletedCustomDevices: DeviceItem[];
+  customServices: EngineeringItem[];
+  deletedServiceIds: string[];
   templates: ProjectTemplate[];
   brands: string[];
-  brandRenames: Record<string, string>; // Maps original seed brand -> renamed brand
+  brandRenames: Record<string, string>;
 
   // UI state
   isDrawerOpen: boolean;
-  diffDeviceIds: string[]; // Compare 2-4 items
+  diffDeviceIds: string[];
 
   // Search & Filter state
   searchQuery: string;
@@ -35,10 +50,17 @@ interface BOMState {
   selectedSpeed: string | 'all';
   poeOnly: boolean;
   hideEol: boolean;
+  recentOnly: boolean;
+  unpricedOnly: boolean;
+  trashView: boolean;
 
   // Actions
+  setWorkspaceTab: (tab: 'devices' | 'services') => void;
+  setSelectedServiceCategory: (cat: string) => void;
+
   setProjectName: (name: string) => void;
   setClientName: (client: string) => void;
+  setQuoteValidityDays: (days: number) => void;
   setGlobalDiscountRate: (rate: number) => void;
   setTargetMarginRate: (rate: number) => void;
   setTaxRate: (rate: number) => void;
@@ -52,7 +74,8 @@ interface BOMState {
   removeItem: (uid: string) => void;
   updateQuantity: (uid: string, quantity: number) => void;
   updateAreaGroup: (uid: string, group: string) => void;
-  updateCustomPrice: (uid: string, price: number | null) => void;
+  updateCustomPrice: (uid: string, priceExclTax: number | null) => void;
+  updateItemTaxRate: (uid: string, rate: number) => void;
   updateItemDiscount: (uid: string, rate: number | null) => void;
   updateItemNotes: (uid: string, notes: string) => void;
   addAccessoryToItem: (uid: string, accessory: AccessoryItem, quantity?: number) => void;
@@ -60,8 +83,23 @@ interface BOMState {
   updateAccessoryPrice: (uid: string, accessoryId: string, unitPrice: number) => void;
   removeAccessoryFromItem: (uid: string, accessoryId: string) => void;
 
+  // Service / Low-voltage / Labor / Fee BOM Actions
+  addServiceItem: (item: EngineeringItem, quantity?: number) => void;
+  addBlankServiceRow: (category?: string) => void;
+  removeServiceItem: (uid: string) => void;
+  updateServiceItem: (uid: string, patch: Partial<BOMServiceItem>) => void;
+  updateServicePrice: (uid: string, value: number, isInclTax: boolean) => void;
+  updateServiceTaxRate: (uid: string, taxRate: number) => void;
+
+  // Service Catalog Actions
+  addCustomService: (item: EngineeringItem) => void;
+  deleteServiceCatalogItem: (id: string) => void;
+  restoreDefaultServices: () => void;
+
+  // Device Catalog & Trash Actions
   addCustomDevice: (device: DeviceItem) => void;
   deleteDevice: (deviceId: string) => void;
+  restoreDevice: (deviceId: string) => void;
   restoreDefaultDevices: () => void;
 
   addBrand: (brandName: string) => void;
@@ -88,8 +126,10 @@ interface BOMState {
   setSelectedSpeed: (speed: string) => void;
   setPoeOnly: (poe: boolean) => void;
   setHideEol: (hide: boolean) => void;
+  setRecentOnly: (recent: boolean) => void;
+  setUnpricedOnly: (unpriced: boolean) => void;
+  setTrashView: (trash: boolean) => void;
 
-  // Export & Share
   generateShareUrl: () => string;
   loadFromShareCode: (code: string) => boolean;
 }
@@ -100,13 +140,21 @@ export const useBOMStore = create<BOMState>()(
       projectName: '企业综合网络改造与集成方案',
       clientName: '某重点企事业单位 / 数据中心',
       creatorName: '网络规划架构部',
+      quoteValidityDays: 30,
       globalDiscountRate: 0.30,
       targetMarginRate: 0.25,
       taxRate: 0.13,
 
+      workspaceTab: 'devices',
+      selectedServiceCategory: 'all',
+
       items: [],
+      serviceItems: [],
       customDevices: [],
       deletedDeviceIds: [],
+      deletedCustomDevices: [],
+      customServices: [],
+      deletedServiceIds: [],
       templates: SCENE_TEMPLATES,
       brands: DEFAULT_BRANDS,
       brandRenames: {},
@@ -120,9 +168,16 @@ export const useBOMStore = create<BOMState>()(
       selectedSpeed: 'all',
       poeOnly: false,
       hideEol: true,
+      recentOnly: false,
+      unpricedOnly: false,
+      trashView: false,
+
+      setWorkspaceTab: (workspaceTab) => set({ workspaceTab, trashView: false }),
+      setSelectedServiceCategory: (selectedServiceCategory) => set({ selectedServiceCategory }),
 
       setProjectName: (projectName) => set({ projectName }),
       setClientName: (clientName) => set({ clientName }),
+      setQuoteValidityDays: (quoteValidityDays) => set({ quoteValidityDays }),
       setGlobalDiscountRate: (globalDiscountRate) => set({ globalDiscountRate }),
       setTargetMarginRate: (targetMarginRate) => set({ targetMarginRate }),
       setTaxRate: (taxRate) => set({ taxRate }),
@@ -154,6 +209,7 @@ export const useBOMStore = create<BOMState>()(
             areaGroup,
             customUnitPrice,
             itemDiscountRate: null,
+            itemTaxRate: state.taxRate,
             notes: '',
             selectedAccessories: [],
           };
@@ -189,7 +245,17 @@ export const useBOMStore = create<BOMState>()(
       updateCustomPrice: (uid, customUnitPrice) => {
         set((state) => ({
           items: state.items.map((i) =>
-            i.uid === uid ? { ...i, customUnitPrice } : i
+            i.uid === uid
+              ? { ...i, customUnitPrice: customUnitPrice !== null ? round2(customUnitPrice) : null }
+              : i
+          ),
+        }));
+      },
+
+      updateItemTaxRate: (uid, itemTaxRate) => {
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.uid === uid ? { ...i, itemTaxRate } : i
           ),
         }));
       },
@@ -289,6 +355,166 @@ export const useBOMStore = create<BOMState>()(
         }));
       },
 
+      // === Service / Low-voltage / Labor / Fee Actions ===
+      addServiceItem: (service, quantity = 1) => {
+        const safeQty = Math.max(1, quantity);
+        set((state) => {
+          const currentList = state.serviceItems || [];
+          const existing = currentList.find((s) => s.item.id === service.id);
+          if (existing) {
+            return {
+              serviceItems: currentList.map((s) =>
+                s.uid === existing.uid
+                  ? {
+                      ...s,
+                      quantity: s.pricingMode === 'percent' ? 1 : s.quantity + safeQty,
+                    }
+                  : s
+              ),
+            };
+          }
+
+          const newEntry: BOMServiceItem = {
+            uid: `srv-${service.id}-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+            item: service,
+            quantity: service.pricingMode === 'percent' ? 1 : safeQty,
+            pricingMode: service.pricingMode,
+            unitPriceExclTax: service.unitPriceExclTax,
+            unitPriceInclTax: service.unitPriceInclTax,
+            percentageRate: service.percentageRate ?? 5,
+            taxRate: service.taxRate,
+            notes: service.notes || '',
+          };
+
+          return {
+            serviceItems: [...currentList, newEntry],
+          };
+        });
+      },
+
+      addBlankServiceRow: (category = '弱电材料') => {
+        const defaultTax =
+          category === '弱电材料' ? 0.13 : category === '项目管理费' ? 0.06 : 0.09;
+        const defaultUnit =
+          category === '弱电材料'
+            ? '米'
+            : category === '布线人工'
+            ? '点'
+            : category === '作业费'
+            ? '项'
+            : '项';
+        const isPercent = category === '项目管理费';
+        const newItem: EngineeringItem = {
+          id: `custom-srv-${Date.now()}`,
+          category,
+          brand: category,
+          name: `自定义${category}`,
+          model: '标准规格',
+          part_number: `SRV-${Math.floor(100 + Math.random() * 900)}`,
+          specs: '按工程现场标准执行',
+          unit: isPercent ? '%' : defaultUnit,
+          pricingMode: isPercent ? 'percent' : 'fixed',
+          unitPriceExclTax: round2(100 / (1 + defaultTax)),
+          unitPriceInclTax: 100,
+          percentageRate: 5,
+          taxRate: defaultTax,
+        };
+        get().addServiceItem(newItem, 1);
+      },
+
+      removeServiceItem: (uid) => {
+        set((state) => ({
+          serviceItems: (state.serviceItems || []).filter((s) => s.uid !== uid),
+        }));
+      },
+
+      updateServiceItem: (uid, patch) => {
+        set((state) => ({
+          serviceItems: (state.serviceItems || []).map((s) => {
+            if (s.uid !== uid) return s;
+            const updatedItem = {
+              ...s.item,
+              ...(patch.item || {}),
+            };
+            return {
+              ...s,
+              ...patch,
+              item: updatedItem,
+            };
+          }),
+        }));
+      },
+
+      updateServicePrice: (uid, value, isInclTax) => {
+        const safeVal = Math.max(0, Number(value) || 0);
+        set((state) => ({
+          serviceItems: (state.serviceItems || []).map((s) => {
+            if (s.uid !== uid) return s;
+            if (isInclTax) {
+              return {
+                ...s,
+                pricingMode: 'fixed',
+                unitPriceInclTax: round2(safeVal),
+                unitPriceExclTax: round2(safeVal / (1 + s.taxRate)),
+              };
+            } else {
+              return {
+                ...s,
+                pricingMode: 'fixed',
+                unitPriceExclTax: round2(safeVal),
+                unitPriceInclTax: round2(safeVal * (1 + s.taxRate)),
+              };
+            }
+          }),
+        }));
+      },
+
+      updateServiceTaxRate: (uid, taxRate) => {
+        set((state) => ({
+          serviceItems: (state.serviceItems || []).map((s) => {
+            if (s.uid !== uid) return s;
+            return {
+              ...s,
+              taxRate,
+              unitPriceInclTax: round2(s.unitPriceExclTax * (1 + taxRate)),
+            };
+          }),
+        }));
+      },
+
+      addCustomService: (srv) => {
+        set((state) => ({
+          customServices: [srv, ...(state.customServices || []).filter((c) => c.id !== srv.id)],
+          deletedServiceIds: (state.deletedServiceIds || []).filter((id) => id !== srv.id),
+          serviceItems: (state.serviceItems || []).map((si) =>
+            si.item.id === srv.id
+              ? {
+                  ...si,
+                  item: srv,
+                  taxRate: srv.taxRate,
+                  pricingMode: srv.pricingMode,
+                  unitPriceExclTax: srv.unitPriceExclTax,
+                  unitPriceInclTax: srv.unitPriceInclTax,
+                  percentageRate: srv.percentageRate ?? si.percentageRate,
+                }
+              : si
+          ),
+        }));
+      },
+
+      deleteServiceCatalogItem: (id) => {
+        set((state) => ({
+          customServices: (state.customServices || []).filter((c) => c.id !== id),
+          deletedServiceIds: (state.deletedServiceIds || []).includes(id)
+            ? state.deletedServiceIds
+            : [...(state.deletedServiceIds || []), id],
+        }));
+      },
+
+      restoreDefaultServices: () => {
+        set({ deletedServiceIds: [] });
+      },
+
       addCustomDevice: (device) => {
         set((state) => {
           const currentBrands = state.brands?.length ? state.brands : DEFAULT_BRANDS;
@@ -299,6 +525,9 @@ export const useBOMStore = create<BOMState>()(
             brands: nextBrands,
             customDevices: [device, ...state.customDevices.filter((d) => d.id !== device.id)],
             deletedDeviceIds: state.deletedDeviceIds.filter((id) => id !== device.id),
+            deletedCustomDevices: (state.deletedCustomDevices || []).filter(
+              (d) => d.id !== device.id
+            ),
             items: state.items.map((item) =>
               item.device.id === device.id ? { ...item, device } : item
             ),
@@ -307,17 +536,53 @@ export const useBOMStore = create<BOMState>()(
       },
 
       deleteDevice: (deviceId) => {
-        set((state) => ({
-          customDevices: state.customDevices.filter((d) => d.id !== deviceId),
-          deletedDeviceIds: state.deletedDeviceIds.includes(deviceId)
-            ? state.deletedDeviceIds
-            : [...state.deletedDeviceIds, deviceId],
-          diffDeviceIds: state.diffDeviceIds.filter((id) => id !== deviceId),
-        }));
+        set((state) => {
+          const customDev = state.customDevices.find((d) => d.id === deviceId);
+          return {
+            customDevices: state.customDevices.filter((d) => d.id !== deviceId),
+            deletedCustomDevices: customDev
+              ? [
+                  customDev,
+                  ...(state.deletedCustomDevices || []).filter((d) => d.id !== deviceId),
+                ]
+              : state.deletedCustomDevices || [],
+            deletedDeviceIds: state.deletedDeviceIds.includes(deviceId)
+              ? state.deletedDeviceIds
+              : [...state.deletedDeviceIds, deviceId],
+            diffDeviceIds: state.diffDeviceIds.filter((id) => id !== deviceId),
+          };
+        });
+      },
+
+      restoreDevice: (deviceId) => {
+        set((state) => {
+          const restoredCustom = (state.deletedCustomDevices || []).find(
+            (d) => d.id === deviceId
+          );
+          const nextDeletedIds = state.deletedDeviceIds.filter((id) => id !== deviceId);
+          return {
+            deletedDeviceIds: nextDeletedIds,
+            deletedCustomDevices: (state.deletedCustomDevices || []).filter(
+              (d) => d.id !== deviceId
+            ),
+            customDevices: restoredCustom
+              ? [restoredCustom, ...state.customDevices.filter((d) => d.id !== deviceId)]
+              : state.customDevices,
+            trashView: nextDeletedIds.length === 0 ? false : state.trashView,
+          };
+        });
       },
 
       restoreDefaultDevices: () => {
-        set({ deletedDeviceIds: [] });
+        set((state) => ({
+          deletedDeviceIds: [],
+          customDevices: [
+            ...(state.deletedCustomDevices || []),
+            ...state.customDevices,
+          ],
+          deletedCustomDevices: [],
+          trashView: false,
+        }));
       },
 
       addBrand: (brandName) => {
@@ -337,7 +602,6 @@ export const useBOMStore = create<BOMState>()(
           const currentBrands = state.brands?.length ? state.brands : DEFAULT_BRANDS;
           const nextBrands = currentBrands.map((b) => (b === oldName ? clean : b));
           const nextRenames = { ...(state.brandRenames || {}) };
-          // Track rename for seed devices
           Object.keys(nextRenames).forEach((k) => {
             if (nextRenames[k] === oldName) nextRenames[k] = clean;
           });
@@ -411,6 +675,7 @@ export const useBOMStore = create<BOMState>()(
             areaGroup: itemDef.areaGroup,
             customUnitPrice: null,
             itemDiscountRate: null,
+            itemTaxRate: get().taxRate,
             notes: '',
             selectedAccessories: accessories,
           });
@@ -468,7 +733,7 @@ export const useBOMStore = create<BOMState>()(
         set({ templates: SCENE_TEMPLATES });
       },
 
-      clearBOM: () => set({ items: [] }),
+      clearBOM: () => set({ items: [], serviceItems: [] }),
 
       toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
       setDrawerOpen: (isDrawerOpen) => set({ isDrawerOpen }),
@@ -493,12 +758,23 @@ export const useBOMStore = create<BOMState>()(
       setSelectedSpeed: (selectedSpeed) => set({ selectedSpeed }),
       setPoeOnly: (poeOnly) => set({ poeOnly }),
       setHideEol: (hideEol) => set({ hideEol }),
+      setRecentOnly: (recentOnly) =>
+        set({ recentOnly, trashView: false }),
+      setUnpricedOnly: (unpricedOnly) =>
+        set({ unpricedOnly, trashView: false }),
+      setTrashView: (trashView) =>
+        set({
+          trashView,
+          recentOnly: trashView ? false : get().recentOnly,
+          unpricedOnly: trashView ? false : get().unpricedOnly,
+        }),
 
       generateShareUrl: () => {
         const state = get();
         const payload = {
           p: state.projectName,
           c: state.clientName,
+          v: state.quoteValidityDays,
           d: state.globalDiscountRate,
           m: state.targetMarginRate,
           t: state.taxRate,
@@ -508,6 +784,7 @@ export const useBOMStore = create<BOMState>()(
             g: i.areaGroup,
             p: i.customUnitPrice,
             d: i.itemDiscountRate,
+            tx: i.itemTaxRate,
             n: i.notes,
             acc: i.selectedAccessories,
           })),
@@ -538,12 +815,17 @@ export const useBOMStore = create<BOMState>()(
         projectName: state.projectName,
         clientName: state.clientName,
         creatorName: state.creatorName,
+        quoteValidityDays: state.quoteValidityDays,
         globalDiscountRate: state.globalDiscountRate,
         targetMarginRate: state.targetMarginRate,
         taxRate: state.taxRate,
         items: state.items,
+        serviceItems: state.serviceItems,
         customDevices: state.customDevices,
         deletedDeviceIds: state.deletedDeviceIds,
+        deletedCustomDevices: state.deletedCustomDevices,
+        customServices: state.customServices,
+        deletedServiceIds: state.deletedServiceIds,
         templates: state.templates,
         brands: state.brands,
         brandRenames: state.brandRenames,
@@ -570,4 +852,39 @@ export function getMergedCatalog(
   const seedIds = new Set(SEED_DEVICES.map((s) => s.id));
   const brandNewCustom = customDevices.filter((c) => !seedIds.has(c.id));
   return [...brandNewCustom, ...overriddenSeed].filter((d) => !deletedSet.has(d.id));
+}
+
+/**
+ * Get deleted devices in the Trash / Recycle Bin
+ */
+export function getDeletedDevicesCatalog(
+  deletedDeviceIds: string[] = [],
+  deletedCustomDevices: DeviceItem[] = [],
+  brandRenames: Record<string, string> = {}
+): DeviceItem[] {
+  const deletedSet = new Set(deletedDeviceIds);
+  const deletedSeeds = SEED_DEVICES.filter((s) => deletedSet.has(s.id)).map((dev) => {
+    const renamedBrand = brandRenames[dev.brand] || dev.brand;
+    return renamedBrand !== dev.brand ? { ...dev, brand: renamedBrand } : dev;
+  });
+  const seedIds = new Set(SEED_DEVICES.map((s) => s.id));
+  const deletedCustom = (deletedCustomDevices || []).filter(
+    (c) => deletedSet.has(c.id) && !seedIds.has(c.id)
+  );
+  return [...deletedCustom, ...deletedSeeds];
+}
+
+/**
+ * Merge custom/edited engineering services with SEED_SERVICES, excluding deletedServiceIds
+ */
+export function getMergedServiceCatalog(
+  customServices: EngineeringItem[] = [],
+  deletedServiceIds: string[] = []
+): EngineeringItem[] {
+  const deletedSet = new Set(deletedServiceIds);
+  const customMap = new Map(customServices.map((s) => [s.id, s]));
+  const overriddenSeed = SEED_SERVICES.map((s) => customMap.get(s.id) || s);
+  const seedIds = new Set(SEED_SERVICES.map((s) => s.id));
+  const brandNewCustom = customServices.filter((c) => !seedIds.has(c.id));
+  return [...brandNewCustom, ...overriddenSeed].filter((s) => !deletedSet.has(s.id));
 }
