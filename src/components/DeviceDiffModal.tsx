@@ -12,12 +12,20 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { diffDeviceIds, toggleDiffDevice, clearDiff, addItem, customDevices } = useBOMStore();
+  const {
+    diffDeviceIds,
+    toggleDiffDevice,
+    clearDiff,
+    addItem,
+    customDevices,
+    deletedDeviceIds,
+    brandRenames,
+  } = useBOMStore();
   const { t, lang } = useI18n();
 
   if (!isOpen || diffDeviceIds.length === 0) return null;
 
-  const allDevices = getMergedCatalog(customDevices);
+  const allDevices = getMergedCatalog(customDevices, deletedDeviceIds, brandRenames);
   const comparedDevices = allDevices.filter((d) =>
     diffDeviceIds.includes(d.id)
   );

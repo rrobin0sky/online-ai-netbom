@@ -12,6 +12,7 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
   const {
     customDevices,
     deletedDeviceIds,
+    brandRenames,
     searchQuery,
     selectedBrand,
     selectedCategory,
@@ -21,8 +22,8 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
   } = useBOMStore();
 
   const allDevices = useMemo(() => {
-    return getMergedCatalog(customDevices, deletedDeviceIds);
-  }, [customDevices, deletedDeviceIds]);
+    return getMergedCatalog(customDevices, deletedDeviceIds, brandRenames);
+  }, [customDevices, deletedDeviceIds, brandRenames]);
 
   const filteredDevices = useMemo(() => {
     return allDevices.filter((d) => {

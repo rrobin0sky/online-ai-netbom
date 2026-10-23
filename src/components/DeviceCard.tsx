@@ -103,11 +103,18 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
             </div>
           </div>
 
-          {/* Right: Clean Single Unit Price */}
+          {/* Right: Unit Price & 指导价 */}
           <div className="text-right flex-shrink-0">
             {unitPrice !== null ? (
-              <div className="text-sm font-bold font-mono text-zinc-100">
-                ¥{unitPrice.toLocaleString()}
+              <div>
+                <div className="text-sm font-bold font-mono text-zinc-100">
+                  ¥{unitPrice.toLocaleString()}
+                </div>
+                {gpl !== null && (
+                  <div className="text-[10px] font-mono text-zinc-500">
+                    指导价 ¥{gpl.toLocaleString()}
+                  </div>
+                )}
               </div>
             ) : (
               <span className="text-xs font-medium text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">

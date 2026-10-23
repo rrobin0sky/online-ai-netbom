@@ -56,7 +56,7 @@ export const DeviceMetadataSchema = z.object({
 
 export const DeviceItemSchema = z.object({
   id: z.string(),
-  brand: z.enum(['Huawei', 'H3C', 'Cisco', 'Ruijie', 'Arista', 'FS.com']),
+  brand: z.string().min(1),
   series: z.string(),
   model: z.string(),
   part_number: z.string(),

@@ -12,7 +12,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useAIStore } from '../store/useAIStore';
-import { useBOMStore } from '../store/useBOMStore';
+import { useBOMStore, DEFAULT_BRANDS } from '../store/useBOMStore';
 import {
   ParsedQuoteItem,
   parseUploadedFileToText,
@@ -33,7 +33,8 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
   onOpenAISettings,
 }) => {
   const aiSettings = useAIStore();
-  const { addCustomDevice, addItem } = useBOMStore();
+  const { addCustomDevice, addItem, brands } = useBOMStore();
+  const activeBrands = brands?.length ? brands : DEFAULT_BRANDS;
 
   const [rawText, setRawText] = useState('');
   const [fileName, setFileName] = useState<string | null>(null);
@@ -133,7 +134,7 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
       {
         tempId: `manual-${Date.now()}`,
         selected: true,
-        brand: 'Huawei',
+        brand: activeBrands[0] || 'Huawei',
         series: '',
         model: '',
         part_number: '',
@@ -311,6 +312,11 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
               </div>
 
               <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30">
+                <datalist id="import-brand-options">
+                  {activeBrands.map((b) => (
+                    <option key={b} value={b} />
+                  ))}
+                </datalist>
                 <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
                   <thead>
                     <tr className="bg-zinc-900/90 text-zinc-400 border-b border-white/10 text-[11px]">
@@ -318,10 +324,11 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                       <th className="p-2.5 w-24">品牌</th>
                       <th className="p-2.5 min-w-[180px]">产品型号 (可查官网)</th>
                       <th className="p-2.5 w-28">订货编码 (P/N)</th>
-                      <th className="p-2.5 min-w-[220px]">端口配置参数</th>
+                      <th className="p-2.5 min-w-[210px]">端口配置参数</th>
                       <th className="p-2.5 w-20">容量(Gbps)</th>
                       <th className="p-2.5 w-20">转发(Mpps)</th>
                       <th className="p-2.5 w-20">PoE(W)</th>
+                      <th className="p-2.5 w-24">指导价 (元)</th>
                       <th className="p-2.5 w-24">单价 (元)</th>
                       <th className="p-2.5 w-16">数量</th>
                       <th className="p-2.5 w-10 text-center">删</th>
@@ -339,18 +346,13 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                           />
                         </td>
                         <td className="p-1.5">
-                          <select
+                          <input
+                            type="text"
+                            list="import-brand-options"
                             value={row.brand}
-                            onChange={(e) => updateRow(row.tempId, 'brand', e.target.value as any)}
-                            className="w-full glass-input rounded px-1.5 py-1 text-xs"
-                          >
-                            <option value="Huawei">Huawei</option>
-                            <option value="H3C">H3C</option>
-                            <option value="Cisco">Cisco</option>
-                            <option value="Ruijie">Ruijie</option>
-                            <option value="Arista">Arista</option>
-                            <option value="FS.com">FS.com</option>
-                          </select>
+                            onChange={(e) => updateRow(row.tempId, 'brand', e.target.value)}
+                            className="w-24 glass-input rounded px-1.5 py-1 text-xs text-zinc-100"
+                          />
                         </td>
                         <td className="p-1.5">
                           <div className="flex items-center gap-1">
@@ -423,6 +425,21 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                             }}
                             placeholder="0"
                             className="w-16 glass-input rounded px-1.5 py-1 font-mono text-right text-zinc-200"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="number"
+                            value={row.list_price_gpl ?? ''}
+                            onChange={(e) =>
+                              updateRow(
+                                row.tempId,
+                                'list_price_gpl',
+                                e.target.value ? Number(e.target.value) : null
+                              )
+                            }
+                            placeholder="选填"
+                            className="w-20 glass-input rounded px-1.5 py-1 font-mono text-right text-zinc-300"
                           />
                         </td>
                         <td className="p-1.5">

@@ -5,7 +5,7 @@ import { DeviceItem } from '../types/device';
 export interface ParsedQuoteItem {
   tempId: string;
   selected: boolean;
-  brand: 'Huawei' | 'H3C' | 'Cisco' | 'Ruijie' | 'Arista' | 'FS.com';
+  brand: string;
   series: string;
   model: string;
   part_number: string;
@@ -298,9 +298,7 @@ export async function analyzeQuoteWithAI(
   return list.map((item: any, idx: number) => ({
     tempId: `ai-${Date.now()}-${idx}`,
     selected: true,
-    brand: ['Huawei', 'H3C', 'Cisco', 'Ruijie', 'Arista', 'FS.com'].includes(item.brand)
-      ? item.brand
-      : 'Huawei',
+    brand: item.brand ? String(item.brand).trim() : 'Huawei',
     series: item.series || `${item.brand || 'Huawei'} Series`,
     model: item.model || 'Unknown-Model',
     part_number: item.part_number || item.model || 'TBD',

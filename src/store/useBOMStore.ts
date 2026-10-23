@@ -5,12 +5,14 @@ import { AccessoryItem, SEED_DEVICES, SEED_ACCESSORIES } from '../data/seedDevic
 import { SCENE_TEMPLATES, ProjectTemplate } from '../data/templates';
 import LZString from 'lz-string';
 
+export const DEFAULT_BRANDS = ['Huawei', 'H3C', 'Cisco', 'Ruijie', 'FS.com'];
+
 interface BOMState {
   // Project settings
   projectName: string;
   clientName: string;
   creatorName: string;
-  globalDiscountRate: number; // e.g. 0.3 for 30% GPL
+  globalDiscountRate: number; // e.g. 0.3 for 30%
   targetMarginRate: number;   // e.g. 0.25 for 25% margin
   taxRate: number;            // e.g. 0.13 for 13% VAT
 
@@ -19,6 +21,8 @@ interface BOMState {
   customDevices: DeviceItem[];
   deletedDeviceIds: string[];
   templates: ProjectTemplate[];
+  brands: string[];
+  brandRenames: Record<string, string>; // Maps original seed brand -> renamed brand
 
   // UI state
   isDrawerOpen: boolean;
@@ -60,6 +64,11 @@ interface BOMState {
   deleteDevice: (deviceId: string) => void;
   restoreDefaultDevices: () => void;
 
+  addBrand: (brandName: string) => void;
+  renameBrand: (oldName: string, newName: string) => void;
+  deleteBrand: (brandName: string) => void;
+  resetBrands: () => void;
+
   loadSceneTemplate: (templateId: string) => void;
   saveCurrentBOMAsTemplate: (name: string, badge: string, description: string) => void;
   updateTemplate: (template: ProjectTemplate) => void;
@@ -99,6 +108,8 @@ export const useBOMStore = create<BOMState>()(
       customDevices: [],
       deletedDeviceIds: [],
       templates: SCENE_TEMPLATES,
+      brands: DEFAULT_BRANDS,
+      brandRenames: {},
 
       isDrawerOpen: false,
       diffDeviceIds: [],
@@ -279,13 +290,20 @@ export const useBOMStore = create<BOMState>()(
       },
 
       addCustomDevice: (device) => {
-        set((state) => ({
-          customDevices: [device, ...state.customDevices.filter((d) => d.id !== device.id)],
-          deletedDeviceIds: state.deletedDeviceIds.filter((id) => id !== device.id),
-          items: state.items.map((item) =>
-            item.device.id === device.id ? { ...item, device } : item
-          ),
-        }));
+        set((state) => {
+          const currentBrands = state.brands?.length ? state.brands : DEFAULT_BRANDS;
+          const nextBrands = currentBrands.includes(device.brand)
+            ? currentBrands
+            : [...currentBrands, device.brand];
+          return {
+            brands: nextBrands,
+            customDevices: [device, ...state.customDevices.filter((d) => d.id !== device.id)],
+            deletedDeviceIds: state.deletedDeviceIds.filter((id) => id !== device.id),
+            items: state.items.map((item) =>
+              item.device.id === device.id ? { ...item, device } : item
+            ),
+          };
+        });
       },
 
       deleteDevice: (deviceId) => {
@@ -302,12 +320,73 @@ export const useBOMStore = create<BOMState>()(
         set({ deletedDeviceIds: [] });
       },
 
+      addBrand: (brandName) => {
+        const clean = brandName.trim();
+        if (!clean) return;
+        set((state) => {
+          const current = state.brands?.length ? state.brands : DEFAULT_BRANDS;
+          if (current.includes(clean)) return state;
+          return { brands: [...current, clean] };
+        });
+      },
+
+      renameBrand: (oldName, newName) => {
+        const clean = newName.trim();
+        if (!clean || clean === oldName) return;
+        set((state) => {
+          const currentBrands = state.brands?.length ? state.brands : DEFAULT_BRANDS;
+          const nextBrands = currentBrands.map((b) => (b === oldName ? clean : b));
+          const nextRenames = { ...(state.brandRenames || {}) };
+          // Track rename for seed devices
+          Object.keys(nextRenames).forEach((k) => {
+            if (nextRenames[k] === oldName) nextRenames[k] = clean;
+          });
+          nextRenames[oldName] = clean;
+
+          return {
+            brands: Array.from(new Set(nextBrands)),
+            brandRenames: nextRenames,
+            selectedBrand: state.selectedBrand === oldName ? clean : state.selectedBrand,
+            customDevices: state.customDevices.map((d) =>
+              d.brand === oldName ? { ...d, brand: clean } : d
+            ),
+            items: state.items.map((item) =>
+              item.device.brand === oldName
+                ? { ...item, device: { ...item.device, brand: clean } }
+                : item
+            ),
+          };
+        });
+      },
+
+      deleteBrand: (brandName) => {
+        set((state) => {
+          const currentBrands = state.brands?.length ? state.brands : DEFAULT_BRANDS;
+          return {
+            brands: currentBrands.filter((b) => b !== brandName),
+            selectedBrand: state.selectedBrand === brandName ? 'all' : state.selectedBrand,
+          };
+        });
+      },
+
+      resetBrands: () => {
+        set({
+          brands: DEFAULT_BRANDS,
+          brandRenames: {},
+          selectedBrand: 'all',
+        });
+      },
+
       loadSceneTemplate: (templateId) => {
         const currentTemplates = get().templates?.length ? get().templates : SCENE_TEMPLATES;
         const template = currentTemplates.find((t) => t.id === templateId);
         if (!template) return;
 
-        const allAvailableDevices = [...SEED_DEVICES, ...get().customDevices];
+        const allAvailableDevices = getMergedCatalog(
+          get().customDevices,
+          get().deletedDeviceIds,
+          get().brandRenames
+        );
         const newItems: BOMItem[] = [];
 
         template.items.forEach((itemDef) => {
@@ -466,21 +545,28 @@ export const useBOMStore = create<BOMState>()(
         customDevices: state.customDevices,
         deletedDeviceIds: state.deletedDeviceIds,
         templates: state.templates,
+        brands: state.brands,
+        brandRenames: state.brandRenames,
       }),
     }
   )
 );
 
 /**
- * Merge custom/edited devices with SEED_DEVICES, excluding deletedDeviceIds
+ * Merge custom/edited devices with SEED_DEVICES, excluding deletedDeviceIds and applying brandRenames
  */
 export function getMergedCatalog(
   customDevices: DeviceItem[],
-  deletedDeviceIds: string[] = []
+  deletedDeviceIds: string[] = [],
+  brandRenames: Record<string, string> = {}
 ): DeviceItem[] {
   const deletedSet = new Set(deletedDeviceIds);
   const customMap = new Map(customDevices.map((d) => [d.id, d]));
-  const overriddenSeed = SEED_DEVICES.map((s) => customMap.get(s.id) || s);
+  const overriddenSeed = SEED_DEVICES.map((s) => {
+    const dev = customMap.get(s.id) || s;
+    const renamedBrand = brandRenames[dev.brand] || dev.brand;
+    return renamedBrand !== dev.brand ? { ...dev, brand: renamedBrand } : dev;
+  });
   const seedIds = new Set(SEED_DEVICES.map((s) => s.id));
   const brandNewCustom = customDevices.filter((c) => !seedIds.has(c.id));
   return [...brandNewCustom, ...overriddenSeed].filter((d) => !deletedSet.has(d.id));
