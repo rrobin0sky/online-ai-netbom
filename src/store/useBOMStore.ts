@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { DeviceItem, BOMItem } from '../types/device';
 import { AccessoryItem, SEED_DEVICES, SEED_ACCESSORIES } from '../data/seedDevices';
-import { SCENE_TEMPLATES } from '../data/templates';
+import { SCENE_TEMPLATES, ProjectTemplate } from '../data/templates';
 import LZString from 'lz-string';
 
 interface BOMState {
@@ -14,9 +14,11 @@ interface BOMState {
   targetMarginRate: number;   // e.g. 0.25 for 25% margin
   taxRate: number;            // e.g. 0.13 for 13% VAT
 
-  // BOM Cart Items
+  // BOM Cart Items & Catalog customizations
   items: BOMItem[];
   customDevices: DeviceItem[];
+  deletedDeviceIds: string[];
+  templates: ProjectTemplate[];
 
   // UI state
   isDrawerOpen: boolean;
@@ -53,9 +55,17 @@ interface BOMState {
   updateAccessoryQuantity: (uid: string, accessoryId: string, quantity: number) => void;
   updateAccessoryPrice: (uid: string, accessoryId: string, unitPrice: number) => void;
   removeAccessoryFromItem: (uid: string, accessoryId: string) => void;
+
   addCustomDevice: (device: DeviceItem) => void;
-  deleteCustomDevice: (deviceId: string) => void;
+  deleteDevice: (deviceId: string) => void;
+  restoreDefaultDevices: () => void;
+
   loadSceneTemplate: (templateId: string) => void;
+  saveCurrentBOMAsTemplate: (name: string, badge: string, description: string) => void;
+  updateTemplate: (template: ProjectTemplate) => void;
+  deleteTemplate: (templateId: string) => void;
+  resetTemplates: () => void;
+
   clearBOM: () => void;
 
   toggleDrawer: () => void;
@@ -87,6 +97,9 @@ export const useBOMStore = create<BOMState>()(
 
       items: [],
       customDevices: [],
+      deletedDeviceIds: [],
+      templates: SCENE_TEMPLATES,
+
       isDrawerOpen: false,
       diffDeviceIds: [],
 
@@ -268,20 +281,30 @@ export const useBOMStore = create<BOMState>()(
       addCustomDevice: (device) => {
         set((state) => ({
           customDevices: [device, ...state.customDevices.filter((d) => d.id !== device.id)],
+          deletedDeviceIds: state.deletedDeviceIds.filter((id) => id !== device.id),
           items: state.items.map((item) =>
             item.device.id === device.id ? { ...item, device } : item
           ),
         }));
       },
 
-      deleteCustomDevice: (deviceId) => {
+      deleteDevice: (deviceId) => {
         set((state) => ({
           customDevices: state.customDevices.filter((d) => d.id !== deviceId),
+          deletedDeviceIds: state.deletedDeviceIds.includes(deviceId)
+            ? state.deletedDeviceIds
+            : [...state.deletedDeviceIds, deviceId],
+          diffDeviceIds: state.diffDeviceIds.filter((id) => id !== deviceId),
         }));
       },
 
+      restoreDefaultDevices: () => {
+        set({ deletedDeviceIds: [] });
+      },
+
       loadSceneTemplate: (templateId) => {
-        const template = SCENE_TEMPLATES.find((t) => t.id === templateId);
+        const currentTemplates = get().templates?.length ? get().templates : SCENE_TEMPLATES;
+        const template = currentTemplates.find((t) => t.id === templateId);
         if (!template) return;
 
         const allAvailableDevices = [...SEED_DEVICES, ...get().customDevices];
@@ -309,7 +332,7 @@ export const useBOMStore = create<BOMState>()(
             areaGroup: itemDef.areaGroup,
             customUnitPrice: null,
             itemDiscountRate: null,
-            notes: `来源于「${template.name}」典型场景方案`,
+            notes: '',
             selectedAccessories: accessories,
           });
         });
@@ -320,6 +343,50 @@ export const useBOMStore = create<BOMState>()(
           items: newItems,
           isDrawerOpen: true,
         });
+      },
+
+      saveCurrentBOMAsTemplate: (name, badge, description) => {
+        const state = get();
+        if (state.items.length === 0) return;
+        const newTemplate: ProjectTemplate = {
+          id: `tmpl-${Date.now()}`,
+          name: name.trim() || state.projectName || '自定义方案模板',
+          badge: badge.trim() || '自定义模板',
+          description: description.trim() || `包含 ${state.items.length} 项网络设备配置`,
+          recommendedDiscount: state.globalDiscountRate,
+          items: state.items.map((item) => ({
+            deviceId: item.device.id,
+            quantity: item.quantity,
+            areaGroup: item.areaGroup,
+            accessories: (item.selectedAccessories || []).map((a) => ({
+              accessoryId: a.accessoryId,
+              quantity: a.quantity,
+            })),
+          })),
+        };
+        set((s) => ({
+          templates: [newTemplate, ...(s.templates?.length ? s.templates : SCENE_TEMPLATES)],
+        }));
+      },
+
+      updateTemplate: (updated) => {
+        set((state) => ({
+          templates: (state.templates?.length ? state.templates : SCENE_TEMPLATES).map((t) =>
+            t.id === updated.id ? updated : t
+          ),
+        }));
+      },
+
+      deleteTemplate: (templateId) => {
+        set((state) => ({
+          templates: (state.templates?.length ? state.templates : SCENE_TEMPLATES).filter(
+            (t) => t.id !== templateId
+          ),
+        }));
+      },
+
+      resetTemplates: () => {
+        set({ templates: SCENE_TEMPLATES });
       },
 
       clearBOM: () => set({ items: [] }),
@@ -378,9 +445,7 @@ export const useBOMStore = create<BOMState>()(
         try {
           const decompressed = LZString.decompressFromEncodedURIComponent(code);
           if (!decompressed) return false;
-          const payload = JSON.parse(decompressed);
-          // We can reconstruct items
-          // Handled in initialization or component mount
+          JSON.parse(decompressed);
           return true;
         } catch {
           return false;
@@ -399,19 +464,24 @@ export const useBOMStore = create<BOMState>()(
         taxRate: state.taxRate,
         items: state.items,
         customDevices: state.customDevices,
+        deletedDeviceIds: state.deletedDeviceIds,
+        templates: state.templates,
       }),
     }
   )
 );
 
 /**
- * Merge custom/edited devices with SEED_DEVICES (deduplicating by id, custom overrides seed)
+ * Merge custom/edited devices with SEED_DEVICES, excluding deletedDeviceIds
  */
-export function getMergedCatalog(customDevices: DeviceItem[]): DeviceItem[] {
+export function getMergedCatalog(
+  customDevices: DeviceItem[],
+  deletedDeviceIds: string[] = []
+): DeviceItem[] {
+  const deletedSet = new Set(deletedDeviceIds);
   const customMap = new Map(customDevices.map((d) => [d.id, d]));
   const overriddenSeed = SEED_DEVICES.map((s) => customMap.get(s.id) || s);
   const seedIds = new Set(SEED_DEVICES.map((s) => s.id));
   const brandNewCustom = customDevices.filter((c) => !seedIds.has(c.id));
-  return [...brandNewCustom, ...overriddenSeed];
+  return [...brandNewCustom, ...overriddenSeed].filter((d) => !deletedSet.has(d.id));
 }
-

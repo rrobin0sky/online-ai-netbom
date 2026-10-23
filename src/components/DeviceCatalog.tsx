@@ -11,6 +11,7 @@ interface DeviceCatalogProps {
 export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) => {
   const {
     customDevices,
+    deletedDeviceIds,
     searchQuery,
     selectedBrand,
     selectedCategory,
@@ -20,8 +21,8 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
   } = useBOMStore();
 
   const allDevices = useMemo(() => {
-    return getMergedCatalog(customDevices);
-  }, [customDevices]);
+    return getMergedCatalog(customDevices, deletedDeviceIds);
+  }, [customDevices, deletedDeviceIds]);
 
   const filteredDevices = useMemo(() => {
     return allDevices.filter((d) => {
@@ -83,9 +84,8 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
 
   return (
     <div className="flex-1 min-w-0">
-      {/* Compact Grid */}
       {filteredDevices.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 items-start">
           {filteredDevices.map((device) => (
             <DeviceCard
               key={device.id}
@@ -96,8 +96,8 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
         </div>
       ) : (
         <div className="glass-panel rounded-2xl p-10 text-center space-y-3 max-w-sm mx-auto my-8">
-          <SearchX className="w-8 h-8 text-slate-500 mx-auto" />
-          <div className="text-sm font-bold text-white">无匹配设备</div>
+          <SearchX className="w-7 h-7 text-zinc-500 mx-auto" />
+          <div className="text-sm font-bold text-zinc-200">无匹配设备</div>
         </div>
       )}
     </div>

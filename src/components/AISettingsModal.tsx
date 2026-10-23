@@ -64,12 +64,12 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
         {/* Header */}
         <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <Settings className="w-4 h-4 text-sky-400" />
-            <h2 className="text-sm font-bold text-white">AI 接口设置</h2>
+            <Settings className="w-4 h-4 text-zinc-300" />
+            <h2 className="text-sm font-bold text-zinc-100">AI 接口设置</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
           >
             <X className="w-4 h-4" />
           </button>
@@ -79,17 +79,17 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
         <div className="p-5 space-y-4 text-xs max-h-[80vh] overflow-y-auto">
           {/* Provider Preset */}
           <div>
-            <label className="text-slate-400 font-medium mb-1.5 block">服务商预设</label>
+            <label className="text-zinc-400 font-medium mb-1.5 block">服务商预设</label>
             <select
               value={presetId}
               onChange={(e) => {
                 setPreset(e.target.value);
                 setTestResult(null);
               }}
-              className="w-full glass-input rounded-xl px-3 py-2 text-white font-medium"
+              className="w-full glass-input rounded-xl px-3 py-2 text-zinc-100 font-medium"
             >
               {AI_PRESETS.map((p) => (
-                <option key={p.id} value={p.id} className="bg-slate-900 text-white">
+                <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-100">
                   {p.name}
                 </option>
               ))}
@@ -98,7 +98,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
 
           {/* API Protocol Standard */}
           <div>
-            <label className="text-slate-400 font-medium mb-1.5 block">协议标准</label>
+            <label className="text-zinc-400 font-medium mb-1.5 block">协议标准</label>
             <div className="grid grid-cols-3 gap-2">
               {(
                 [
@@ -113,8 +113,8 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
                   onClick={() => setApiFormat(fmt.id)}
                   className={`py-2 px-2.5 rounded-xl font-medium border text-center transition-all ${
                     apiFormat === fmt.id
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                      : 'glass-input text-slate-400 hover:text-white'
+                      ? 'bg-zinc-100 text-zinc-900 border-zinc-100 font-semibold'
+                      : 'glass-input text-zinc-400 hover:text-white'
                   }`}
                 >
                   {fmt.label}
@@ -125,23 +125,23 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
 
           {/* Base URL */}
           <div>
-            <label className="text-slate-400 font-medium mb-1.5 flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-slate-400" /> API Base URL
+            <label className="text-zinc-400 font-medium mb-1.5 flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-zinc-400" /> API Base URL
             </label>
             <input
               type="text"
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://api.openai.com/v1"
-              className="w-full glass-input rounded-xl px-3 py-2 font-mono text-white"
+              className="w-full glass-input rounded-xl px-3 py-2 font-mono text-zinc-100"
             />
           </div>
 
           {/* API Key */}
           <div>
-            <label className="text-slate-400 font-medium mb-1.5 flex items-center justify-between">
+            <label className="text-zinc-400 font-medium mb-1.5 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5 text-amber-400" /> API Key (仅保存在本地浏览器)
+                <Key className="w-3.5 h-3.5 text-zinc-400" /> API Key (仅保存在本地浏览器)
               </span>
             </label>
             <div className="relative">
@@ -150,12 +150,12 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-... 或 AIzaSy..."
-                className="w-full glass-input rounded-xl pl-3 pr-9 py-2 font-mono text-white"
+                className="w-full glass-input rounded-xl pl-3 pr-9 py-2 font-mono text-zinc-100"
               />
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
               >
                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -164,15 +164,15 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
 
           {/* Model Name */}
           <div>
-            <label className="text-slate-400 font-medium mb-1.5 flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5 text-indigo-400" /> 模型名称 (Model ID)
+            <label className="text-zinc-400 font-medium mb-1.5 flex items-center gap-1.5">
+              <Cpu className="w-3.5 h-3.5 text-zinc-400" /> 模型名称 (Model ID)
             </label>
             <input
               type="text"
               value={model}
               onChange={(e) => setModel(e.target.value)}
               placeholder="如 deepseek-chat, gpt-4o-mini, gemini-2.5-flash"
-              className="w-full glass-input rounded-xl px-3 py-2 font-mono text-white"
+              className="w-full glass-input rounded-xl px-3 py-2 font-mono text-zinc-100"
             />
             {currentPreset && currentPreset.models.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
@@ -183,8 +183,8 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
                     onClick={() => setModel(m)}
                     className={`px-2 py-0.5 rounded-md font-mono text-[11px] border transition-colors ${
                       model === m
-                        ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                        : 'bg-white/5 text-slate-400 border-white/5 hover:text-white'
+                        ? 'bg-zinc-100 text-zinc-900 border-zinc-100 font-semibold'
+                        : 'bg-white/5 text-zinc-400 border-white/10 hover:text-white'
                     }`}
                   >
                     {m}
@@ -195,10 +195,10 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
           </div>
 
           {/* Web Search Grounding Toggle */}
-          <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer select-none">
+          <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer select-none">
             <div>
-              <div className="font-medium text-slate-200">联网检索官网参数补全</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
+              <div className="font-medium text-zinc-200">联网检索官网参数补全</div>
+              <div className="text-[11px] text-zinc-400 mt-0.5">
                 缺失参数时允许调用搜索工具 (Gemini Search / 百炼联网) 或官方规格知识库补全
               </div>
             </div>
@@ -206,7 +206,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
               type="checkbox"
               checked={enableWebSearch}
               onChange={(e) => setEnableWebSearch(e.target.checked)}
-              className="w-4 h-4 accent-sky-500 rounded"
+              className="w-4 h-4 accent-zinc-200 rounded"
             />
           </label>
 
@@ -215,8 +215,8 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
             <div
               className={`p-3 rounded-xl border flex items-start gap-2 ${
                 testResult.ok
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                  : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                  ? 'bg-white/10 border-white/20 text-zinc-100'
+                  : 'bg-white/5 border-white/15 text-zinc-300'
               }`}
             >
               {testResult.ok ? (
@@ -235,7 +235,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
             type="button"
             onClick={handleTestConnection}
             disabled={testing}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl glass-panel text-xs font-medium text-slate-300 hover:text-white disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl glass-panel border border-white/10 text-xs font-medium text-zinc-300 hover:text-white disabled:opacity-50"
           >
             {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
             <span>{testing ? '测试中...' : '测试连接'}</span>
@@ -244,7 +244,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({ isOpen, onClos
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold transition-colors"
+            className="px-5 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 text-xs font-bold transition-colors"
           >
             完成保存
           </button>

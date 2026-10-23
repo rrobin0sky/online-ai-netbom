@@ -1,44 +1,6 @@
 import ExcelJS from 'exceljs';
 import { BOMItem } from '../types/device';
 
-// Helper: Convert number to Chinese Currency Uppercase (人民币大写)
-function numberToChinese(num: number): string {
-  if (isNaN(num) || num === 0) return '零元整';
-  const fraction = ['角', '分'];
-  const digit = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
-  const unit = [
-    ['元', '万', '亿'],
-    ['', '拾', '佰', '仟'],
-  ];
-
-  const head = num < 0 ? '欠' : '';
-  num = Math.abs(num);
-
-  let s = '';
-  for (let i = 0; i < fraction.length; i++) {
-    s += (digit[Math.floor(num * 10 * Math.pow(10, i)) % 10] + fraction[i]).replace(/零./, '');
-  }
-  s = s || '整';
-  num = Math.floor(num);
-
-  for (let i = 0; i < unit[0].length && num > 0; i++) {
-    let p = '';
-    for (let j = 0; j < unit[1].length && num > 0; j++) {
-      p = digit[num % 10] + unit[1][j] + p;
-      num = Math.floor(num / 10);
-    }
-    s = p.replace(/(零.)*零$/, '').replace(/^$/, '零') + unit[0][i] + s;
-  }
-
-  return (
-    head +
-    s
-      .replace(/(零.)*零元/, '元')
-      .replace(/(零.)+/g, '零')
-      .replace(/^整$/, '零元整')
-  );
-}
-
 export interface ExportOptions {
   projectName: string;
   clientName: string;
@@ -59,47 +21,46 @@ export async function exportBOMToExcel(options: ExportOptions) {
     views: [{ showGridLines: true }],
   });
 
-  // 1. Column Definitions
+  // 1. Exact 11 Columns matching UI Quotation Sheet (minus 操作 column)
+  // 序号 | 网络分区 | 品牌 | 产品型号 | 订货编码 (P/N) | 关键技术规格描述 | 数量 | 单位 | 单价 (元) | 合价 (元) | 备注
   worksheet.columns = [
-    { key: 'index', width: 6 },        // A: 序号
-    { key: 'area', width: 14 },        // B: 规划分区
-    { key: 'brand', width: 10 },       // C: 品牌
-    { key: 'model', width: 22 },       // D: 产品型号
-    { key: 'partNumber', width: 16 },  // E: 物料订货号 P/N
-    { key: 'specs', width: 44 },       // F: 硬件规格与配置说明
-    { key: 'qty', width: 8 },          // G: 数量
-    { key: 'unit', width: 6 },         // H: 单位
-    { key: 'gpl', width: 14 },         // I: 官方指导价(GPL)
-    { key: 'discount', width: 10 },    // J: 折扣率
-    { key: 'unitPrice', width: 15 },   // K: 投标/对客单价
-    { key: 'totalPrice', width: 16 },  // L: 合计金额
-    { key: 'notes', width: 26 },       // M: 备注 / 伴生配件
+    { key: 'index', width: 8 },        // A: 序号
+    { key: 'area', width: 15 },        // B: 网络分区
+    { key: 'brand', width: 12 },       // C: 品牌
+    { key: 'model', width: 24 },       // D: 产品型号
+    { key: 'partNumber', width: 18 },  // E: 订货编码 (P/N)
+    { key: 'specs', width: 46 },       // F: 关键技术规格描述
+    { key: 'qty', width: 10 },         // G: 数量
+    { key: 'unit', width: 8 },         // H: 单位
+    { key: 'unitPrice', width: 16 },   // I: 单价 (元)
+    { key: 'totalPrice', width: 18 },  // J: 合价 (元)
+    { key: 'notes', width: 28 },       // K: 备注
   ];
 
   // 2. Title Header Banner
-  worksheet.mergeCells('A1:M1');
+  worksheet.mergeCells('A1:K1');
   const titleCell = worksheet.getCell('A1');
-  titleCell.value = `${projectName} — 网络设备物料清单 (BOM)`;
-  titleCell.font = { name: 'Microsoft YaHei', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+  titleCell.value = `${projectName} — 工程设备配置与报价清单 (BOM)`;
+  titleCell.font = { name: 'Microsoft YaHei', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
   titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
   titleCell.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FF0F172A' }, // Deep Slate 900
+    fgColor: { argb: 'FF18181B' }, // Zinc 900
   };
-  worksheet.getRow(1).height = 42;
+  worksheet.getRow(1).height = 38;
 
   // 3. Metadata Sub-header
-  worksheet.mergeCells('A2:M2');
+  worksheet.mergeCells('A2:K2');
   const subMetaCell = worksheet.getCell('A2');
   const dateStr = new Date().toISOString().split('T')[0];
-  subMetaCell.value = `客户/采购方: ${clientName}    |    编制团队: ${creatorName}    |    生成日期: ${dateStr}    |    报价有效期: 30日`;
-  subMetaCell.font = { name: 'Microsoft YaHei', size: 10, italic: true, color: { argb: 'FF94A3B8' } };
+  subMetaCell.value = `客户单位: ${clientName}    |    编制: ${creatorName}    |    日期: ${dateStr}`;
+  subMetaCell.font = { name: 'Microsoft YaHei', size: 10, color: { argb: 'FFD4D4D8' } };
   subMetaCell.alignment = { vertical: 'middle', horizontal: 'center' };
   subMetaCell.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FF1E293B' },
+    fgColor: { argb: 'FF27272A' }, // Zinc 800
   };
   worksheet.getRow(2).height = 24;
 
@@ -110,18 +71,16 @@ export async function exportBOMToExcel(options: ExportOptions) {
   // 4. Table Header Row (Row 4)
   const headerRow = worksheet.addRow([
     '序号',
-    '规划分区',
+    '网络分区',
     '品牌',
     '产品型号',
-    '订货号 (P/N)',
-    '详细硬件规格说明',
+    '订货编码 (P/N)',
+    '关键技术规格描述',
     '数量',
     '单位',
-    '目录指导价 (GPL)',
-    '执行折扣',
-    '投标销售单价',
-    '分项合价 (元)',
-    '配件清单与技术备注',
+    '单价 (元)',
+    '合价 (元)',
+    '备注',
   ]);
   headerRow.height = 28;
   headerRow.eachCell((cell) => {
@@ -129,13 +88,13 @@ export async function exportBOMToExcel(options: ExportOptions) {
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF0284C7' }, // Sky 600
+      fgColor: { argb: 'FF3F3F46' }, // Zinc 700
     };
     cell.alignment = { vertical: 'middle', horizontal: 'center' };
     cell.border = {
       top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
       left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      bottom: { style: 'medium', color: { argb: 'FF0369A1' } },
+      bottom: { style: 'medium', color: { argb: 'FF18181B' } },
       right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     };
   });
@@ -146,28 +105,17 @@ export async function exportBOMToExcel(options: ExportOptions) {
 
   items.forEach((item, idx) => {
     const row = worksheet.getRow(currentRowIndex);
-    
-    // Effective Discount
     const effectiveDiscount = item.itemDiscountRate ?? globalDiscountRate;
-    
-    // Effective Unit Price
-    let finalUnitPrice: number;
-    if (item.customUnitPrice !== null) {
-      finalUnitPrice = item.customUnitPrice;
-    } else if (item.device.pricing.list_price_gpl !== null) {
-      finalUnitPrice = item.device.pricing.list_price_gpl * effectiveDiscount;
-    } else {
-      finalUnitPrice = 0;
-    }
+    const gpl = item.device.pricing.list_price_gpl;
 
-    // Accessories summary text
-    let accSummary = '';
-    if (item.selectedAccessories && item.selectedAccessories.length > 0) {
-      accSummary = item.selectedAccessories
-        .map((a) => `[${a.accessoryName} x${a.quantity}]`)
-        .join(' ');
-    }
-    const fullNotes = [item.notes, accSummary].filter(Boolean).join(' | ');
+    const finalUnitPrice =
+      item.customUnitPrice !== null
+        ? item.customUnitPrice
+        : item.device.pricing.cost_estimate !== null
+        ? item.device.pricing.cost_estimate
+        : gpl !== null
+        ? Math.round(gpl * effectiveDiscount)
+        : 0;
 
     row.values = [
       idx + 1,
@@ -175,38 +123,27 @@ export async function exportBOMToExcel(options: ExportOptions) {
       item.device.brand,
       item.device.model,
       item.device.part_number,
-      `${item.device.specs.ports.summary} | 背板 ${item.device.specs.switching_capacity_gbps}Gbps | ${item.device.specs.poe.supported ? 'PoE+供电' : '非PoE'}`,
+      `${item.device.specs.ports.summary} | ${item.device.specs.switching_capacity_gbps}Gbps${
+        item.device.specs.poe.supported ? ` | PoE ${item.device.specs.poe.budget_watts}W` : ''
+      }`,
       item.quantity,
       '台',
-      item.device.pricing.list_price_gpl ?? 0,
-      effectiveDiscount,
       finalUnitPrice,
-      { formula: `G${currentRowIndex}*K${currentRowIndex}` }, // Excel Formula: Qty * UnitPrice
-      fullNotes,
+      { formula: `G${currentRowIndex}*I${currentRowIndex}` },
+      item.notes || '',
     ];
 
-    // Styling
-    row.height = 26;
+    row.height = 25;
     row.eachCell((cell, colNumber) => {
       cell.font = { name: 'Microsoft YaHei', size: 9.5 };
       cell.alignment = { vertical: 'middle' };
       cell.border = {
-        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-        right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        top: { style: 'thin', color: { argb: 'FFE4E4E7' } },
+        left: { style: 'thin', color: { argb: 'FFE4E4E7' } },
+        bottom: { style: 'thin', color: { argb: 'FFE4E4E7' } },
+        right: { style: 'thin', color: { argb: 'FFE4E4E7' } },
       };
 
-      // Zebra striping
-      if (idx % 2 === 1) {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFF8FAFC' },
-        };
-      }
-
-      // Column-specific alignments & number formats
       if ([1, 2, 3, 5, 8].includes(colNumber)) {
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
       }
@@ -214,77 +151,115 @@ export async function exportBOMToExcel(options: ExportOptions) {
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
         cell.numFmt = '#,##0';
       }
-      if (colNumber === 9 || colNumber === 11 || colNumber === 12) {
+      if (colNumber === 9 || colNumber === 10) {
         cell.alignment = { vertical: 'middle', horizontal: 'right' };
         cell.numFmt = '¥#,##0.00';
-      }
-      if (colNumber === 10) {
-        cell.alignment = { vertical: 'middle', horizontal: 'center' };
-        cell.numFmt = '0.0%';
       }
     });
 
     currentRowIndex++;
+
+    // Sub-rows for accessories if any
+    (item.selectedAccessories || []).forEach((acc, accIdx) => {
+      const accRow = worksheet.getRow(currentRowIndex);
+      const totalAccQty = acc.quantity * item.quantity;
+      accRow.values = [
+        `${idx + 1}.${accIdx + 1}`,
+        '配套辅件',
+        '通用/原厂',
+        acc.accessoryName,
+        acc.partNumber,
+        `每台主机配 ${acc.quantity} 个（共 ${item.quantity} 台主机）`,
+        totalAccQty,
+        '只',
+        acc.unitPrice,
+        { formula: `G${currentRowIndex}*I${currentRowIndex}` },
+        '',
+      ];
+      accRow.height = 22;
+      accRow.eachCell((cell, colNumber) => {
+        cell.font = { name: 'Microsoft YaHei', size: 9, color: { argb: 'FF52525B' } };
+        cell.alignment = { vertical: 'middle' };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFAFAFA' },
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE4E4E7' } },
+          left: { style: 'thin', color: { argb: 'FFE4E4E7' } },
+          bottom: { style: 'thin', color: { argb: 'FFE4E4E7' } },
+          right: { style: 'thin', color: { argb: 'FFE4E4E7' } },
+        };
+        if ([1, 2, 3, 5, 7, 8].includes(colNumber)) {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        }
+        if (colNumber === 9 || colNumber === 10) {
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+          cell.numFmt = '¥#,##0.00';
+        }
+      });
+      currentRowIndex++;
+    });
   });
 
   const endDataRow = currentRowIndex - 1;
 
   // 6. Summary Rows
   if (items.length > 0) {
-    // Blank separator
     worksheet.addRow([]);
     currentRowIndex++;
 
     // Subtotal Row (未税总价)
     const subtotalRow = worksheet.getRow(currentRowIndex);
-    worksheet.mergeCells(`A${currentRowIndex}:K${currentRowIndex}`);
-    worksheet.getCell(`A${currentRowIndex}`).value = '设备物料净价总计 (未税合计):';
+    worksheet.mergeCells(`A${currentRowIndex}:I${currentRowIndex}`);
+    worksheet.getCell(`A${currentRowIndex}`).value = '未税总价:';
     worksheet.getCell(`A${currentRowIndex}`).alignment = { vertical: 'middle', horizontal: 'right' };
     worksheet.getCell(`A${currentRowIndex}`).font = { name: 'Microsoft YaHei', size: 10, bold: true };
-    
-    const subtotalFormulaCell = worksheet.getCell(`L${currentRowIndex}`);
-    subtotalFormulaCell.value = { formula: `SUM(L${startDataRow}:L${endDataRow})` };
+
+    const subtotalFormulaCell = worksheet.getCell(`J${currentRowIndex}`);
+    subtotalFormulaCell.value = { formula: `SUM(J${startDataRow}:J${endDataRow})` };
     subtotalFormulaCell.numFmt = '¥#,##0.00';
-    subtotalFormulaCell.font = { name: 'Microsoft YaHei', size: 11, bold: true, color: { argb: 'FF0284C7' } };
+    subtotalFormulaCell.font = { name: 'Microsoft YaHei', size: 11, bold: true };
     subtotalRow.height = 24;
     currentRowIndex++;
 
-    // Tax Row (增值税额)
+    // Tax Row (税额)
     const taxRow = worksheet.getRow(currentRowIndex);
-    worksheet.mergeCells(`A${currentRowIndex}:K${currentRowIndex}`);
-    worksheet.getCell(`A${currentRowIndex}`).value = `增值税额 (税率 ${(taxRate * 100).toFixed(0)}%):`;
+    worksheet.mergeCells(`A${currentRowIndex}:I${currentRowIndex}`);
+    worksheet.getCell(`A${currentRowIndex}`).value = `增值税额 (${(taxRate * 100).toFixed(0)}%):`;
     worksheet.getCell(`A${currentRowIndex}`).alignment = { vertical: 'middle', horizontal: 'right' };
     worksheet.getCell(`A${currentRowIndex}`).font = { name: 'Microsoft YaHei', size: 10 };
-    
-    const taxFormulaCell = worksheet.getCell(`L${currentRowIndex}`);
-    taxFormulaCell.value = { formula: `L${currentRowIndex - 1}*${taxRate}` };
+
+    const taxFormulaCell = worksheet.getCell(`J${currentRowIndex}`);
+    taxFormulaCell.value = { formula: `J${currentRowIndex - 1}*${taxRate}` };
     taxFormulaCell.numFmt = '¥#,##0.00';
     taxFormulaCell.font = { name: 'Microsoft YaHei', size: 10 };
     taxRow.height = 22;
     currentRowIndex++;
 
-    // Grand Total Row (含税总报价)
+    // Grand Total Row (含税总计)
     const grandTotalRow = worksheet.getRow(currentRowIndex);
-    worksheet.mergeCells(`A${currentRowIndex}:K${currentRowIndex}`);
-    worksheet.getCell(`A${currentRowIndex}`).value = '方案最终含税总报价 (人民币大写/小写):';
+    worksheet.mergeCells(`A${currentRowIndex}:I${currentRowIndex}`);
+    worksheet.getCell(`A${currentRowIndex}`).value = '含税总计:';
     worksheet.getCell(`A${currentRowIndex}`).alignment = { vertical: 'middle', horizontal: 'right' };
     worksheet.getCell(`A${currentRowIndex}`).font = { name: 'Microsoft YaHei', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
     worksheet.getCell(`A${currentRowIndex}`).fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF0F172A' },
+      fgColor: { argb: 'FF18181B' },
     };
 
-    const grandFormulaCell = worksheet.getCell(`L${currentRowIndex}`);
-    grandFormulaCell.value = { formula: `L${currentRowIndex - 2}+L${currentRowIndex - 1}` };
+    const grandFormulaCell = worksheet.getCell(`J${currentRowIndex}`);
+    grandFormulaCell.value = { formula: `J${currentRowIndex - 2}+J${currentRowIndex - 1}` };
     grandFormulaCell.numFmt = '¥#,##0.00';
-    grandFormulaCell.font = { name: 'Microsoft YaHei', size: 13, bold: true, color: { argb: 'FFF59E0B' } };
+    grandFormulaCell.font = { name: 'Microsoft YaHei', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
     grandFormulaCell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF0F172A' },
+      fgColor: { argb: 'FF18181B' },
     };
-    grandTotalRow.height = 30;
+    grandTotalRow.height = 28;
   }
 
   // 7. Write and trigger download in browser

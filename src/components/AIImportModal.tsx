@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import {
   X,
   Upload,
-  Sparkles,
   Loader2,
   Check,
   Search,
@@ -189,11 +188,11 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
         {/* Header */}
         <div className="px-5 py-3.5 border-b border-white/10 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <Sparkles className="w-4 h-4 text-sky-400" />
-            <h2 className="text-sm font-bold text-white">
-              AI 报价文件解析与官网参数补全
+            <Upload className="w-4 h-4 text-zinc-300" />
+            <h2 className="text-sm font-bold text-zinc-100">
+              导入报价文件 / 录入设备
             </h2>
-            <span className="text-[11px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded">
+            <span className="text-[11px] font-mono text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">
               {aiSettings.model || '未配置模型'}
             </span>
           </div>
@@ -201,14 +200,14 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onOpenAISettings}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass-panel text-xs text-slate-300 hover:text-white"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass-panel border border-white/10 text-xs text-zinc-300 hover:text-white"
             >
-              <Settings className="w-3.5 h-3.5 text-sky-400" />
+              <Settings className="w-3.5 h-3.5 text-zinc-400" />
               <span>AI 设置</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
             >
               <X className="w-4 h-4" />
             </button>
@@ -218,15 +217,15 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
           {errorMsg && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-center justify-between gap-2">
+            <div className="p-3 rounded-xl bg-white/5 border border-white/15 text-zinc-200 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 flex-shrink-0 text-zinc-400" />
                 <span>{errorMsg}</span>
               </div>
               {!aiSettings.apiKey && (
                 <button
                   onClick={onOpenAISettings}
-                  className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-white font-semibold whitespace-nowrap"
+                  className="px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-900 font-semibold whitespace-nowrap"
                 >
                   去设置 API Key
                 </button>
@@ -239,7 +238,7 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
             {/* File Dropzone */}
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="glass-panel rounded-xl p-4 border-dashed border-2 border-white/15 hover:border-sky-400/50 cursor-pointer flex flex-col items-center justify-center text-center transition-all min-h-[130px]"
+              className="glass-panel rounded-xl p-4 border-dashed border-2 border-white/15 hover:border-white/30 cursor-pointer flex flex-col items-center justify-center text-center transition-all min-h-[130px]"
             >
               <input
                 ref={fileInputRef}
@@ -249,14 +248,14 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                 className="hidden"
               />
               {loadingFile ? (
-                <Loader2 className="w-6 h-6 text-sky-400 animate-spin mb-2" />
+                <Loader2 className="w-6 h-6 text-zinc-300 animate-spin mb-2" />
               ) : (
-                <Upload className="w-6 h-6 text-sky-400 mb-2" />
+                <Upload className="w-6 h-6 text-zinc-400 mb-2" />
               )}
-              <div className="font-semibold text-slate-200">
+              <div className="font-semibold text-zinc-200">
                 {fileName ? `已加载: ${fileName}` : '点击上传报价单 / 规格书'}
               </div>
-              <div className="text-[11px] text-slate-500 mt-1">
+              <div className="text-[11px] text-zinc-500 mt-1">
                 支持 Excel (.xlsx/.csv)、PDF、文本 (.txt)
               </div>
             </div>
@@ -268,33 +267,30 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
                 placeholder="或直接在此粘贴报价内容、型号清单（如：华为 S5735-L48P4X-A1 4台 单价3950元；H3C S5560X-30C-EI 2台）..."
-                className="w-full flex-1 glass-input rounded-xl p-3 font-mono text-xs text-slate-200"
+                className="w-full flex-1 glass-input rounded-xl p-3 font-mono text-xs text-zinc-200"
               />
               <div className="flex items-center justify-between">
                 <button
                   type="button"
                   onClick={addEmptyRow}
-                  className="flex items-center gap-1 text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg bg-white/5"
+                  className="flex items-center gap-1 text-zinc-300 hover:text-white px-3 py-1.5 rounded-lg bg-white/5 border border-white/10"
                 >
-                  <Plus className="w-3.5 h-3.5" /> 手动添加行并查官网
+                  <Plus className="w-3.5 h-3.5" /> 手动添加设备行
                 </button>
 
                 <button
                   type="button"
                   onClick={handleAnalyze}
                   disabled={analyzing}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold shadow-md disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 font-bold shadow-sm disabled:opacity-50"
                 >
                   {analyzing ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>AI 正在解析并检索官网规格...</span>
+                      <span>正在解析并检索官网规格...</span>
                     </>
                   ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>AI 智能提取与补全参数</span>
-                    </>
+                    <span>AI 提取与官网参数补全</span>
                   )}
                 </button>
               </div>
@@ -305,29 +301,28 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
           {parsedItems.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-sky-400" />
-                  解析结果复核与人工编辑（共 {parsedItems.length} 项，可直接点击修改任意单元格）
+                <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-zinc-400" />
+                  设备复核与编辑（共 {parsedItems.length} 项）
                 </span>
-                <span className="text-[11px] text-slate-400">
-                  点击型号右侧 <Search className="w-3 h-3 inline text-sky-400" /> 可单独联网检索官网参数
+                <span className="text-[11px] text-zinc-400">
+                  点击型号右侧 <Search className="w-3 h-3 inline text-zinc-300" /> 可单独联网检索官网参数
                 </span>
               </div>
 
               <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30">
                 <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
                   <thead>
-                    <tr className="bg-slate-900/90 text-slate-400 border-b border-white/10 text-[11px]">
+                    <tr className="bg-zinc-900/90 text-zinc-400 border-b border-white/10 text-[11px]">
                       <th className="p-2.5 text-center w-8">选</th>
                       <th className="p-2.5 w-24">品牌</th>
-                      <th className="p-2.5 min-w-[180px]">产品型号 (可联网补全)</th>
-                      <th className="p-2.5 w-28">订货号 (P/N)</th>
-                      <th className="p-2.5 min-w-[210px]">端口配置参数</th>
+                      <th className="p-2.5 min-w-[180px]">产品型号 (可查官网)</th>
+                      <th className="p-2.5 w-28">订货编码 (P/N)</th>
+                      <th className="p-2.5 min-w-[220px]">端口配置参数</th>
                       <th className="p-2.5 w-20">容量(Gbps)</th>
                       <th className="p-2.5 w-20">转发(Mpps)</th>
                       <th className="p-2.5 w-20">PoE(W)</th>
-                      <th className="p-2.5 w-24">目录价(GPL)</th>
-                      <th className="p-2.5 w-24">报价单价</th>
+                      <th className="p-2.5 w-24">单价 (元)</th>
                       <th className="p-2.5 w-16">数量</th>
                       <th className="p-2.5 w-10 text-center">删</th>
                     </tr>
@@ -340,7 +335,7 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                             type="checkbox"
                             checked={row.selected}
                             onChange={(e) => updateRow(row.tempId, 'selected', e.target.checked)}
-                            className="accent-sky-500 rounded"
+                            className="accent-zinc-200 rounded"
                           />
                         </td>
                         <td className="p-1.5">
@@ -364,14 +359,14 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                               value={row.model}
                               onChange={(e) => updateRow(row.tempId, 'model', e.target.value)}
                               placeholder="输入型号..."
-                              className="w-full glass-input rounded px-2 py-1 font-bold text-white"
+                              className="w-full glass-input rounded px-2 py-1 font-bold text-zinc-100"
                             />
                             <button
                               type="button"
                               onClick={() => handleSingleLookup(row)}
                               disabled={lookingUpId === row.tempId}
                               title="联网检索官网规格参数"
-                              className="p-1.5 rounded bg-sky-500/15 hover:bg-sky-500/30 text-sky-400 flex-shrink-0"
+                              className="p-1.5 rounded bg-white/10 hover:bg-white/20 text-zinc-200 flex-shrink-0"
                             >
                               {lookingUpId === row.tempId ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -386,7 +381,7 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                             type="text"
                             value={row.part_number}
                             onChange={(e) => updateRow(row.tempId, 'part_number', e.target.value)}
-                            className="w-24 glass-input rounded px-2 py-1 font-mono text-slate-300"
+                            className="w-24 glass-input rounded px-2 py-1 font-mono text-zinc-300"
                           />
                         </td>
                         <td className="p-1.5">
@@ -394,7 +389,7 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                             type="text"
                             value={row.ports_summary}
                             onChange={(e) => updateRow(row.tempId, 'ports_summary', e.target.value)}
-                            className="w-full glass-input rounded px-2 py-1 text-slate-200"
+                            className="w-full glass-input rounded px-2 py-1 text-zinc-200"
                           />
                         </td>
                         <td className="p-1.5">
@@ -427,22 +422,7 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                               updateRow(row.tempId, 'poe_supported', w > 0);
                             }}
                             placeholder="0"
-                            className="w-16 glass-input rounded px-1.5 py-1 font-mono text-right text-amber-300"
-                          />
-                        </td>
-                        <td className="p-1.5">
-                          <input
-                            type="number"
-                            value={row.list_price_gpl ?? ''}
-                            onChange={(e) =>
-                              updateRow(
-                                row.tempId,
-                                'list_price_gpl',
-                                e.target.value ? Number(e.target.value) : null
-                              )
-                            }
-                            placeholder="待定"
-                            className="w-20 glass-input rounded px-1.5 py-1 font-mono text-right"
+                            className="w-16 glass-input rounded px-1.5 py-1 font-mono text-right text-zinc-200"
                           />
                         </td>
                         <td className="p-1.5">
@@ -457,7 +437,7 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                               )
                             }
                             placeholder="待定"
-                            className="w-20 glass-input rounded px-1.5 py-1 font-mono text-right text-emerald-300"
+                            className="w-20 glass-input rounded px-1.5 py-1 font-mono text-right text-zinc-100 font-semibold"
                           />
                         </td>
                         <td className="p-1.5">
@@ -476,7 +456,7 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                             onClick={() =>
                               setParsedItems((prev) => prev.filter((i) => i.tempId !== row.tempId))
                             }
-                            className="text-slate-500 hover:text-rose-400 p-1"
+                            className="text-zinc-500 hover:text-zinc-200 p-1"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -492,27 +472,27 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
 
         {/* Footer */}
         <div className="px-5 py-3.5 bg-black/50 border-t border-white/10 flex items-center justify-between gap-3">
-          <div className="text-[11px] text-slate-400">
+          <div className="text-[11px] text-zinc-400">
             已勾选 {parsedItems.filter((i) => i.selected).length} 款产品
           </div>
           <div className="flex items-center gap-2.5">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-white"
+              className="px-4 py-2 rounded-xl text-xs text-zinc-400 hover:text-white"
             >
               取消
             </button>
             <button
               disabled={parsedItems.length === 0}
               onClick={() => handleImport(false)}
-              className="px-4 py-2 rounded-xl glass-panel text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 disabled:opacity-40"
+              className="px-4 py-2 rounded-xl glass-panel border border-white/10 text-xs font-semibold text-zinc-200 hover:text-white hover:bg-white/10 disabled:opacity-40"
             >
               仅导入设备库
             </button>
             <button
               disabled={parsedItems.length === 0}
               onClick={() => handleImport(true)}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold shadow-lg shadow-sky-500/20 disabled:opacity-40"
+              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 text-xs font-bold shadow-sm disabled:opacity-40"
             >
               <Check className="w-3.5 h-3.5" />
               <span>导入设备库并加入 BOM</span>

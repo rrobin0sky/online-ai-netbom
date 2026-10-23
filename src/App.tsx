@@ -21,7 +21,7 @@ export const App: React.FC = () => {
   const [isAIImportOpen, setIsAIImportOpen] = useState(false);
   const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
 
-  const { setDrawerOpen, items, customDevices } = useBOMStore();
+  const { setDrawerOpen, items, customDevices, deletedDeviceIds } = useBOMStore();
 
   // Restore shared BOM from URL query parameter if present
   useEffect(() => {
@@ -33,7 +33,7 @@ export const App: React.FC = () => {
         if (decompressed) {
           const parsed = JSON.parse(decompressed);
           if (parsed && parsed.items && Array.isArray(parsed.items)) {
-            const catalog = getMergedCatalog(customDevices);
+            const catalog = getMergedCatalog(customDevices, deletedDeviceIds);
             const restoredItems: BOMItem[] = [];
             parsed.items.forEach((itemMeta: any) => {
               const matchedDevice = catalog.find((d) => d.id === itemMeta.id);
@@ -70,20 +70,15 @@ export const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#090a0f] text-slate-100 flex flex-col font-sans selection:bg-sky-500/20 selection:text-sky-300">
+    <div className="min-h-screen bg-[#090a0f] text-zinc-100 flex flex-col font-sans selection:bg-white/20 selection:text-white">
       {/* Top Workspace Header */}
       <Header
         onOpenAIImport={() => setIsAIImportOpen(true)}
-        onOpenAISettings={() => setIsAISettingsOpen(true)}
-        onOpenAddDevice={() => {
-          setEditingDevice(null);
-          setIsAddDeviceOpen(true);
-        }}
         onOpenTemplates={() => setIsTemplatesOpen(true)}
       />
 
-      {/* Main Workspace Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-5 flex flex-col lg:flex-row gap-6">
+      {/* Main Workspace Layout: Top Horizontal Filter Bar + Full-Width Device Grid */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-4 flex flex-col gap-4">
         <FilterSidebar />
         <DeviceCatalog
           onEditDevice={(dev) => {
@@ -138,7 +133,7 @@ export const App: React.FC = () => {
         <div className="fixed bottom-5 right-5 z-30 lg:hidden">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-xs shadow-2xl shadow-sky-500/40"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-zinc-100 text-zinc-900 font-bold text-xs shadow-2xl"
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>BOM ({items.reduce((s, i) => s + i.quantity, 0)})</span>

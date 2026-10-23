@@ -1,28 +1,21 @@
 import React from 'react';
 import {
-  Network,
   FileSpreadsheet,
   GitCompare,
   Search,
-  Plus,
-  Layers,
-  Sparkles,
-  Settings,
+  Upload,
+  LayoutTemplate,
 } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
 
 interface HeaderProps {
-  onOpenAddDevice?: () => void;
   onOpenTemplates?: () => void;
   onOpenAIImport?: () => void;
-  onOpenAISettings?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  onOpenAddDevice,
   onOpenTemplates,
   onOpenAIImport,
-  onOpenAISettings,
 }) => {
   const {
     items,
@@ -43,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
       unitPrice = item.device.pricing.cost_estimate;
     } else if (item.device.pricing.list_price_gpl !== null) {
       const discount = item.itemDiscountRate ?? globalDiscountRate;
-      unitPrice = item.device.pricing.list_price_gpl * discount;
+      unitPrice = Math.round(item.device.pricing.list_price_gpl * discount);
     }
     const accTotal = (item.selectedAccessories || []).reduce(
       (aSum, a) => aSum + a.unitPrice * a.quantity,
@@ -55,14 +48,21 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-4 lg:px-8 py-2.5">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-        {/* Brand */}
+        {/* Brand Logo (Minimalist Rack Switch + BOM Icon) */}
         <div className="flex items-center gap-2.5 flex-shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-cyan-400 p-[1px] shadow-md shadow-sky-500/20">
-            <div className="w-full h-full bg-[#0d1017] rounded-[7px] flex items-center justify-center">
-              <Network className="w-4 h-4 text-sky-400" />
-            </div>
+          <div className="w-7 h-7 rounded-lg bg-zinc-900 border border-white/15 flex items-center justify-center shadow-xs">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 text-zinc-100" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="7" rx="1.5" />
+              <rect x="2" y="13" width="20" height="7" rx="1.5" />
+              <circle cx="6" cy="7.5" r="0.8" fill="currentColor" />
+              <circle cx="9.5" cy="7.5" r="0.8" fill="currentColor" />
+              <circle cx="6" cy="16.5" r="0.8" fill="currentColor" />
+              <circle cx="9.5" cy="16.5" r="0.8" fill="currentColor" />
+              <line x1="14" y1="7.5" x2="18.5" y2="7.5" />
+              <line x1="14" y1="16.5" x2="18.5" y2="16.5" />
+            </svg>
           </div>
-          <h1 className="text-base font-bold tracking-tight text-white">
+          <h1 className="text-sm font-bold tracking-tight text-zinc-100">
             NetBOM
           </h1>
         </div>
@@ -70,18 +70,18 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Global Search Bar */}
         <div className="flex-1 max-w-md hidden md:block">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索型号、P/N、端口规格 (如 S5735, 48口PoE+, 25G)..."
-              className="w-full glass-input rounded-xl pl-9 pr-8 py-1.5 text-xs placeholder:text-slate-500"
+              className="w-full glass-input rounded-xl pl-9 pr-8 py-1.5 text-xs placeholder:text-zinc-500"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400 hover:text-white"
               >
                 ✕
               </button>
@@ -89,29 +89,17 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons (Restrained Monochrome Style) */}
         <div className="flex items-center gap-2">
-          {/* AI Import Quote / Specs */}
+          {/* Unified Import / Add Entry */}
           {onOpenAIImport && (
             <button
               onClick={onOpenAIImport}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-semibold transition-colors"
-              title="上传 Excel / PDF / 文本报价单自动解析"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel border border-white/10 text-zinc-200 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors"
+              title="上传报价单解析或手动录入设备"
             >
-              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-              <span>AI 导入报价</span>
-            </button>
-          )}
-
-          {/* Add Device */}
-          {onOpenAddDevice && (
-            <button
-              onClick={onOpenAddDevice}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl glass-panel text-slate-300 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors"
-              title="手动录入设备"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">录入设备</span>
+              <Upload className="w-3.5 h-3.5 text-zinc-400" />
+              <span>导入 / 录入</span>
             </button>
           )}
 
@@ -119,21 +107,10 @@ export const Header: React.FC<HeaderProps> = ({
           {onOpenTemplates && (
             <button
               onClick={onOpenTemplates}
-              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl glass-panel text-slate-300 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel border border-white/10 text-zinc-200 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors"
             >
-              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+              <LayoutTemplate className="w-3.5 h-3.5 text-zinc-400" />
               <span>模板</span>
-            </button>
-          )}
-
-          {/* AI Settings */}
-          {onOpenAISettings && (
-            <button
-              onClick={onOpenAISettings}
-              className="p-1.5 rounded-xl glass-panel text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-              title="AI 接口设置"
-            >
-              <Settings className="w-4 h-4" />
             </button>
           )}
 
@@ -144,9 +121,9 @@ export const Header: React.FC<HeaderProps> = ({
                 const el = document.getElementById('diff-modal-trigger');
                 if (el) el.click();
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium hover:bg-amber-500/25"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel border border-white/20 text-zinc-100 text-xs font-medium hover:bg-white/10"
             >
-              <GitCompare className="w-3.5 h-3.5" />
+              <GitCompare className="w-3.5 h-3.5 text-zinc-400" />
               <span>对比 ({diffDeviceIds.length})</span>
             </button>
           )}
@@ -156,21 +133,23 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={toggleDrawer}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               totalItemCount > 0
-                ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:brightness-110 shadow-md shadow-sky-500/20'
-                : 'glass-panel text-slate-300 hover:text-white hover:bg-white/5'
+                ? 'bg-zinc-100 text-zinc-900 hover:bg-white shadow-sm'
+                : 'glass-panel border border-white/10 text-zinc-300 hover:text-white hover:bg-white/10'
             }`}
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             <span>BOM 清单</span>
             <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                totalItemCount > 0 ? 'bg-white text-sky-700' : 'bg-slate-800 text-slate-400'
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                totalItemCount > 0
+                  ? 'bg-zinc-900 text-zinc-100'
+                  : 'bg-zinc-800 text-zinc-400'
               }`}
             >
               {totalItemCount}
             </span>
             {totalItemCount > 0 && (
-              <span className="hidden xl:inline text-sky-100 font-mono text-[11px] border-l border-white/20 pl-2">
+              <span className="hidden xl:inline text-zinc-600 font-mono text-[11px] border-l border-zinc-300 pl-2">
                 ¥{estimatedTotal.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
               </span>
             )}
