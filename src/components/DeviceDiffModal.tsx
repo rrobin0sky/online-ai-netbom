@@ -1,8 +1,7 @@
 import React from 'react';
 import { X, GitCompare, ExternalLink, Plus } from 'lucide-react';
-import { useBOMStore } from '../store/useBOMStore';
+import { useBOMStore, getMergedCatalog } from '../store/useBOMStore';
 import { useI18n } from '../i18n';
-import { SEED_DEVICES } from '../data/seedDevices';
 
 interface DeviceDiffModalProps {
   isOpen: boolean;
@@ -13,12 +12,13 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { diffDeviceIds, toggleDiffDevice, clearDiff, addItem } = useBOMStore();
+  const { diffDeviceIds, toggleDiffDevice, clearDiff, addItem, customDevices } = useBOMStore();
   const { t, lang } = useI18n();
 
   if (!isOpen || diffDeviceIds.length === 0) return null;
 
-  const comparedDevices = SEED_DEVICES.filter((d) =>
+  const allDevices = getMergedCatalog(customDevices);
+  const comparedDevices = allDevices.filter((d) =>
     diffDeviceIds.includes(d.id)
   );
 

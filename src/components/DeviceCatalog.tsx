@@ -1,11 +1,14 @@
 import React, { useMemo } from 'react';
 import { DeviceCard } from './DeviceCard';
-import { SEED_DEVICES } from '../data/seedDevices';
-import { useBOMStore } from '../store/useBOMStore';
-import { useI18n } from '../i18n';
-import { SearchX, Filter } from 'lucide-react';
+import { useBOMStore, getMergedCatalog } from '../store/useBOMStore';
+import { DeviceItem } from '../types/device';
+import { SearchX } from 'lucide-react';
 
-export const DeviceCatalog: React.FC = () => {
+interface DeviceCatalogProps {
+  onEditDevice?: (device: DeviceItem) => void;
+}
+
+export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) => {
   const {
     customDevices,
     searchQuery,
@@ -15,15 +18,13 @@ export const DeviceCatalog: React.FC = () => {
     poeOnly,
     hideEol,
   } = useBOMStore();
-  const { t } = useI18n();
 
   const allDevices = useMemo(() => {
-    return [...customDevices, ...SEED_DEVICES];
+    return getMergedCatalog(customDevices);
   }, [customDevices]);
 
   const filteredDevices = useMemo(() => {
     return allDevices.filter((d) => {
-      // 1. Text Search (model, series, part_number, description, tags)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesModel = d.model.toLowerCase().includes(q);
@@ -44,19 +45,14 @@ export const DeviceCatalog: React.FC = () => {
         }
       }
 
-      // 2. Brand
       if (selectedBrand !== 'all' && d.brand !== selectedBrand) {
         return false;
       }
 
-      // 3. Category / Layer
-      if (selectedCategory !== 'all') {
-        if (d.specs.layer !== selectedCategory) {
-          return false;
-        }
+      if (selectedCategory !== 'all' && d.specs.layer !== selectedCategory) {
+        return false;
       }
 
-      // 4. Speed
       if (selectedSpeed !== 'all') {
         const hasDownlink = d.specs.ports.downlink_speed === selectedSpeed;
         const hasUplink = d.specs.ports.uplink_speed === selectedSpeed;
@@ -65,12 +61,10 @@ export const DeviceCatalog: React.FC = () => {
         }
       }
 
-      // 5. PoE Only
       if (poeOnly && !d.specs.poe.supported) {
         return false;
       }
 
-      // 6. Hide EOL
       if (hideEol && d.lifecycle === 'eol') {
         return false;
       }
@@ -89,42 +83,21 @@ export const DeviceCatalog: React.FC = () => {
 
   return (
     <div className="flex-1 min-w-0">
-      {/* Result Status Bar */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-sky-400" />
-          <h2 className="text-sm font-semibold text-slate-200">
-            {t('catalog.title')}
-          </h2>
-          <span className="text-xs font-mono text-slate-500 bg-white/5 px-2 py-0.5 rounded-full">
-            {filteredDevices.length} {t('catalog.count')}
-          </span>
-        </div>
-
-        <div className="text-xs text-slate-500">
-          {t('catalog.tip')}
-        </div>
-      </div>
-
-      {/* Catalog Grid */}
+      {/* Compact Grid */}
       {filteredDevices.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 items-start">
           {filteredDevices.map((device) => (
-            <DeviceCard key={device.id} device={device} />
+            <DeviceCard
+              key={device.id}
+              device={device}
+              onEditDevice={onEditDevice}
+            />
           ))}
         </div>
       ) : (
-        /* Empty State */
-        <div className="glass-panel rounded-3xl p-12 text-center space-y-4 max-w-md mx-auto my-12">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-sky-500/10 flex items-center justify-center border border-sky-500/20">
-            <SearchX className="w-8 h-8 text-sky-400" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-white">{t('catalog.emptyTitle')}</h3>
-            <p className="text-xs text-slate-400 mt-1">
-              {t('catalog.emptyDesc')}
-            </p>
-          </div>
+        <div className="glass-panel rounded-2xl p-10 text-center space-y-3 max-w-sm mx-auto my-8">
+          <SearchX className="w-8 h-8 text-slate-500 mx-auto" />
+          <div className="text-sm font-bold text-white">无匹配设备</div>
         </div>
       )}
     </div>

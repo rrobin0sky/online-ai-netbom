@@ -1,14 +1,29 @@
 import React from 'react';
-import { Network, FileSpreadsheet, GitCompare, Search, ShieldCheck, Plus, Layers } from 'lucide-react';
+import {
+  Network,
+  FileSpreadsheet,
+  GitCompare,
+  Search,
+  Plus,
+  Layers,
+  Sparkles,
+  Settings,
+} from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
-import { useI18n } from '../i18n';
 
 interface HeaderProps {
   onOpenAddDevice?: () => void;
   onOpenTemplates?: () => void;
+  onOpenAIImport?: () => void;
+  onOpenAISettings?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onOpenAddDevice,
+  onOpenTemplates,
+  onOpenAIImport,
+  onOpenAISettings,
+}) => {
   const {
     items,
     toggleDrawer,
@@ -17,15 +32,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates
     setSearchQuery,
     globalDiscountRate,
   } = useBOMStore();
-  const { t, lang } = useI18n();
 
   const totalItemCount = items.reduce((acc, cur) => acc + cur.quantity, 0);
 
-  // Compute total estimated cost / price
   const estimatedTotal = items.reduce((sum, item) => {
     let unitPrice = 0;
     if (item.customUnitPrice !== null) {
       unitPrice = item.customUnitPrice;
+    } else if (item.device.pricing.cost_estimate !== null) {
+      unitPrice = item.device.pricing.cost_estimate;
     } else if (item.device.pricing.list_price_gpl !== null) {
       const discount = item.itemDiscountRate ?? globalDiscountRate;
       unitPrice = item.device.pricing.list_price_gpl * discount;
@@ -38,53 +53,35 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates
   }, 0);
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-4 lg:px-8 py-3.5 transition-all">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        {/* Brand & Title */}
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-cyan-400 p-[1.5px] shadow-lg shadow-sky-500/20 flex-shrink-0">
-            <div className="w-full h-full bg-[#0d1017] rounded-[10px] flex items-center justify-center">
-              <Network className="w-5 h-5 text-sky-400" />
+    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-4 lg:px-8 py-2.5">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+        {/* Brand */}
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-cyan-400 p-[1px] shadow-md shadow-sky-500/20">
+            <div className="w-full h-full bg-[#0d1017] rounded-[7px] flex items-center justify-center">
+              <Network className="w-4 h-4 text-sky-400" />
             </div>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
-                NetBOM
-                <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                  {t('header.version')}
-                </span>
-              </h1>
-              <span className="hidden sm:inline-block text-xs text-slate-500">•</span>
-              <span className="hidden sm:inline-block text-xs text-slate-400 font-medium">
-                {t('header.tagline')}
-              </span>
-            </div>
-            <div className="text-[11px] text-slate-500 flex items-center gap-2">
-              <span className="flex items-center gap-1 text-emerald-400/90">
-                <ShieldCheck className="w-3 h-3" /> {lang === 'zh' ? '官网规格溯源' : 'Official Datasheet Specs'}
-              </span>
-              <span>•</span>
-              <span>{lang === 'zh' ? 'Local-First 商业隐私加密' : 'Local-First Privacy Architecture'}</span>
-            </div>
-          </div>
+          <h1 className="text-base font-bold tracking-tight text-white">
+            NetBOM
+          </h1>
         </div>
 
         {/* Global Search Bar */}
         <div className="flex-1 max-w-md hidden md:block">
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('header.searchPlaceholder')}
-              className="w-full glass-input rounded-xl pl-10 pr-4 py-2 text-xs placeholder:text-slate-500"
+              placeholder="搜索型号、P/N、端口规格 (如 S5735, 48口PoE+, 25G)..."
+              className="w-full glass-input rounded-xl pl-9 pr-8 py-1.5 text-xs placeholder:text-slate-500"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
               >
                 ✕
               </button>
@@ -93,28 +90,50 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2.5">
-          {/* Templates Trigger */}
-          {onOpenTemplates && (
+        <div className="flex items-center gap-2">
+          {/* AI Import Quote / Specs */}
+          {onOpenAIImport && (
             <button
-              onClick={onOpenTemplates}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl glass-panel text-slate-300 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors"
-              title={lang === 'zh' ? '载入行业拓扑预置模板' : 'Load network topology template'}
+              onClick={onOpenAIImport}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-semibold transition-colors"
+              title="上传 Excel / PDF / 文本报价单自动解析"
             >
-              <Layers className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{t('header.templates')}</span>
+              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+              <span>AI 导入报价</span>
             </button>
           )}
 
-          {/* Add Device Trigger */}
+          {/* Add Device */}
           {onOpenAddDevice && (
             <button
               onClick={onOpenAddDevice}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/25 text-sky-300 text-xs font-semibold transition-colors"
-              title={lang === 'zh' ? '录入新设备规格' : 'Add custom equipment specs'}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl glass-panel text-slate-300 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors"
+              title="手动录入设备"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{t('header.addCustom')}</span>
+              <span className="hidden sm:inline">录入设备</span>
+            </button>
+          )}
+
+          {/* Templates */}
+          {onOpenTemplates && (
+            <button
+              onClick={onOpenTemplates}
+              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl glass-panel text-slate-300 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors"
+            >
+              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+              <span>模板</span>
+            </button>
+          )}
+
+          {/* AI Settings */}
+          {onOpenAISettings && (
+            <button
+              onClick={onOpenAISettings}
+              className="p-1.5 rounded-xl glass-panel text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              title="AI 接口设置"
+            >
+              <Settings className="w-4 h-4" />
             </button>
           )}
 
@@ -125,35 +144,33 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates
                 const el = document.getElementById('diff-modal-trigger');
                 if (el) el.click();
               }}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium hover:bg-amber-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium hover:bg-amber-500/25"
             >
               <GitCompare className="w-3.5 h-3.5" />
-              <span>{t('header.diff')} ({diffDeviceIds.length})</span>
+              <span>对比 ({diffDeviceIds.length})</span>
             </button>
           )}
 
-          {/* BOM Drawer Trigger */}
+          {/* BOM Sheet Trigger */}
           <button
             onClick={toggleDrawer}
-            className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-md ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               totalItemCount > 0
-                ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:brightness-110 shadow-sky-500/25 ring-2 ring-sky-400/20'
+                ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:brightness-110 shadow-md shadow-sky-500/20'
                 : 'glass-panel text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            <div className="flex items-center gap-1.5">
-              <span>BOM</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                  totalItemCount > 0 ? 'bg-white text-sky-700' : 'bg-slate-800 text-slate-400'
-                }`}
-              >
-                {totalItemCount}
-              </span>
-            </div>
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>BOM 清单</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                totalItemCount > 0 ? 'bg-white text-sky-700' : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              {totalItemCount}
+            </span>
             {totalItemCount > 0 && (
-              <span className="hidden lg:inline text-sky-100 font-mono text-[11px] border-l border-white/20 pl-2">
+              <span className="hidden xl:inline text-sky-100 font-mono text-[11px] border-l border-white/20 pl-2">
                 ¥{estimatedTotal.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
               </span>
             )}

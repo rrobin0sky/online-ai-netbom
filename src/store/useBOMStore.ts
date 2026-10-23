@@ -37,7 +37,12 @@ interface BOMState {
   setTargetMarginRate: (rate: number) => void;
   setTaxRate: (rate: number) => void;
 
-  addItem: (device: DeviceItem, areaGroup?: string) => void;
+  addItem: (
+    device: DeviceItem,
+    areaGroup?: string,
+    quantity?: number,
+    customUnitPrice?: number | null
+  ) => void;
   removeItem: (uid: string) => void;
   updateQuantity: (uid: string, quantity: number) => void;
   updateAreaGroup: (uid: string, group: string) => void;
@@ -45,8 +50,11 @@ interface BOMState {
   updateItemDiscount: (uid: string, rate: number | null) => void;
   updateItemNotes: (uid: string, notes: string) => void;
   addAccessoryToItem: (uid: string, accessory: AccessoryItem, quantity?: number) => void;
+  updateAccessoryQuantity: (uid: string, accessoryId: string, quantity: number) => void;
+  updateAccessoryPrice: (uid: string, accessoryId: string, unitPrice: number) => void;
   removeAccessoryFromItem: (uid: string, accessoryId: string) => void;
   addCustomDevice: (device: DeviceItem) => void;
+  deleteCustomDevice: (deviceId: string) => void;
   loadSceneTemplate: (templateId: string) => void;
   clearBOM: () => void;
 
@@ -95,27 +103,32 @@ export const useBOMStore = create<BOMState>()(
       setTargetMarginRate: (targetMarginRate) => set({ targetMarginRate }),
       setTaxRate: (taxRate) => set({ taxRate }),
 
-      addItem: (device, areaGroup = '汇聚接入层') => {
+      addItem: (device, areaGroup = '接入层', quantity = 1, customUnitPrice = null) => {
+        const safeQty = Math.max(1, quantity);
         set((state) => {
-          // Check if same device already exists in this area group
           const existing = state.items.find(
             (i) => i.device.id === device.id && i.areaGroup === areaGroup
           );
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.uid === existing.uid ? { ...i, quantity: i.quantity + 1 } : i
+                i.uid === existing.uid
+                  ? {
+                      ...i,
+                      quantity: i.quantity + safeQty,
+                      customUnitPrice: customUnitPrice !== null ? customUnitPrice : i.customUnitPrice,
+                    }
+                  : i
               ),
-              isDrawerOpen: true,
             };
           }
 
           const newItem: BOMItem = {
             uid: `${device.id}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
             device,
-            quantity: 1,
+            quantity: safeQty,
             areaGroup,
-            customUnitPrice: null,
+            customUnitPrice,
             itemDiscountRate: null,
             notes: '',
             selectedAccessories: [],
@@ -123,7 +136,6 @@ export const useBOMStore = create<BOMState>()(
 
           return {
             items: [...state.items, newItem],
-            isDrawerOpen: true,
           };
         });
       },
@@ -207,6 +219,38 @@ export const useBOMStore = create<BOMState>()(
         }));
       },
 
+      updateAccessoryQuantity: (uid, accessoryId, quantity) => {
+        if (quantity <= 0) {
+          get().removeAccessoryFromItem(uid, accessoryId);
+          return;
+        }
+        set((state) => ({
+          items: state.items.map((item) => {
+            if (item.uid !== uid) return item;
+            return {
+              ...item,
+              selectedAccessories: (item.selectedAccessories || []).map((a) =>
+                a.accessoryId === accessoryId ? { ...a, quantity } : a
+              ),
+            };
+          }),
+        }));
+      },
+
+      updateAccessoryPrice: (uid, accessoryId, unitPrice) => {
+        set((state) => ({
+          items: state.items.map((item) => {
+            if (item.uid !== uid) return item;
+            return {
+              ...item,
+              selectedAccessories: (item.selectedAccessories || []).map((a) =>
+                a.accessoryId === accessoryId ? { ...a, unitPrice } : a
+              ),
+            };
+          }),
+        }));
+      },
+
       removeAccessoryFromItem: (uid, accessoryId) => {
         set((state) => ({
           items: state.items.map((item) => {
@@ -224,6 +268,15 @@ export const useBOMStore = create<BOMState>()(
       addCustomDevice: (device) => {
         set((state) => ({
           customDevices: [device, ...state.customDevices.filter((d) => d.id !== device.id)],
+          items: state.items.map((item) =>
+            item.device.id === device.id ? { ...item, device } : item
+          ),
+        }));
+      },
+
+      deleteCustomDevice: (deviceId) => {
+        set((state) => ({
+          customDevices: state.customDevices.filter((d) => d.id !== deviceId),
         }));
       },
 
@@ -350,3 +403,15 @@ export const useBOMStore = create<BOMState>()(
     }
   )
 );
+
+/**
+ * Merge custom/edited devices with SEED_DEVICES (deduplicating by id, custom overrides seed)
+ */
+export function getMergedCatalog(customDevices: DeviceItem[]): DeviceItem[] {
+  const customMap = new Map(customDevices.map((d) => [d.id, d]));
+  const overriddenSeed = SEED_DEVICES.map((s) => customMap.get(s.id) || s);
+  const seedIds = new Set(SEED_DEVICES.map((s) => s.id));
+  const brandNewCustom = customDevices.filter((c) => !seedIds.has(c.id));
+  return [...brandNewCustom, ...overriddenSeed];
+}
+
