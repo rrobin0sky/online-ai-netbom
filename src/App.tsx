@@ -7,12 +7,12 @@ import { DeviceDiffModal } from './components/DeviceDiffModal';
 import { AddDeviceModal } from './components/AddDeviceModal';
 import { SceneTemplateModal } from './components/SceneTemplateModal';
 import { useBOMStore } from './store/useBOMStore';
+import { useI18n } from './i18n';
 import {
   Server,
   Zap,
   Sliders,
   FileSpreadsheet,
-  CheckCircle2,
   Sparkles,
 } from 'lucide-react';
 import LZString from 'lz-string';
@@ -23,7 +23,8 @@ export const App: React.FC = () => {
   const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
-  const { diffDeviceIds, setDrawerOpen, items } = useBOMStore();
+  const { setDrawerOpen, items } = useBOMStore();
+  const { t, setLang } = useI18n();
 
   // Listen to shared URL parameters on mount
   useEffect(() => {
@@ -66,10 +67,16 @@ export const App: React.FC = () => {
           }
         }
       }
+
+      // Check URL language
+      const urlLang = params.get('b0_lang');
+      if (urlLang) {
+        setLang(urlLang);
+      }
     } catch (e) {
       console.error('Failed to load shared BOM from URL', e);
     }
-  }, []);
+  }, [setLang]);
 
   return (
     <div className="min-h-screen bg-[#090a0f] text-slate-100 flex flex-col font-sans selection:bg-sky-500/20 selection:text-sky-300">
@@ -85,32 +92,32 @@ export const App: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-sky-400 mb-1">
               <Sparkles className="w-4 h-4" />
-              <span>新一代网络工程规划选型与 BOM 自动化</span>
+              <span>{t('hero.badge')}</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-              让网络设备选型与商务报价，像装机一样丝滑准确
+              {t('hero.title')}
             </h2>
             <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
-              严格收录厂商官网白皮书参数，自动防呆校验电源与光模块搭配，支持阶梯折扣与毛利倒推，一键导出投标级工业 Excel 报价单。
+              {t('hero.description')}
             </p>
           </div>
 
           {/* Quick Steps Pill Flow */}
           <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono bg-white/5 p-2 rounded-2xl border border-white/5 flex-shrink-0">
             <span className="flex items-center gap-1 text-sky-300 font-semibold">
-              <Server className="w-3.5 h-3.5" /> 1. 规格匹配
+              <Server className="w-3.5 h-3.5" /> {t('hero.step1')}
             </span>
             <span>➔</span>
             <span className="flex items-center gap-1 text-amber-300 font-semibold">
-              <Zap className="w-3.5 h-3.5" /> 2. 辅件防呆
+              <Zap className="w-3.5 h-3.5" /> {t('hero.step2')}
             </span>
             <span>➔</span>
             <span className="flex items-center gap-1 text-emerald-300 font-semibold">
-              <Sliders className="w-3.5 h-3.5" /> 3. 折扣毛利
+              <Sliders className="w-3.5 h-3.5" /> {t('hero.step3')}
             </span>
             <span>➔</span>
             <span className="flex items-center gap-1 text-white font-bold bg-sky-500/20 px-2 py-0.5 rounded-lg border border-sky-500/30">
-              <FileSpreadsheet className="w-3.5 h-3.5 text-sky-400" /> 4. 导出
+              <FileSpreadsheet className="w-3.5 h-3.5 text-sky-400" /> {t('hero.step4')}
             </span>
           </div>
         </div>
@@ -161,7 +168,7 @@ export const App: React.FC = () => {
             className="flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-xs shadow-2xl shadow-sky-500/40 ring-4 ring-sky-400/20"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>查看当前 BOM ({items.reduce((s, i) => s + i.quantity, 0)})</span>
+            <span>{t('drawer.viewBOMFloating')} ({items.reduce((s, i) => s + i.quantity, 0)})</span>
           </button>
         </div>
       )}
@@ -171,7 +178,7 @@ export const App: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>NetBOM • 官方真实规格引擎与本地隐私安全</span>
+            <span>{t('footer.tagline')}</span>
           </div>
           <div>
             Part of{' '}

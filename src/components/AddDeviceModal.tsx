@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Code, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
+import { useI18n } from '../i18n';
 import { DeviceItem, DeviceItemSchema } from '../types/device';
 
 interface AddDeviceModalProps {
@@ -9,6 +10,7 @@ interface AddDeviceModalProps {
 }
 
 export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose }) => {
+  const { t, lang } = useI18n();
   const { addCustomDevice } = useBOMStore();
   const [mode, setMode] = useState<'form' | 'json'>('form');
 
@@ -195,7 +197,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
               {/* Brand & Series */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-slate-400 font-medium mb-1 block">设备品牌</label>
+                  <label className="text-slate-400 font-medium mb-1 block">{t('custom.brand')}</label>
                   <select
                     value={brand}
                     onChange={(e) => setBrand(e.target.value as any)}
@@ -209,7 +211,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-400 font-medium mb-1 block">产品系列</label>
+                  <label className="text-slate-400 font-medium mb-1 block">{t('custom.series')}</label>
                   <input
                     type="text"
                     value={series}
@@ -268,7 +270,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
               {/* Performance */}
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-slate-400 font-medium mb-1 block">机箱高度</label>
+                  <label className="text-slate-400 font-medium mb-1 block">{lang === 'zh' ? '机箱高度' : 'Form Factor'}</label>
                   <select
                     value={formFactor}
                     onChange={(e) => setFormFactor(e.target.value as any)}
@@ -280,7 +282,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-400 font-medium mb-1 block">交换容量 (Gbps)</label>
+                  <label className="text-slate-400 font-medium mb-1 block">{t('custom.switching')}</label>
                   <input
                     type="number"
                     value={switchingGbps}
@@ -289,7 +291,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 font-medium mb-1 block">包转发率 (Mpps)</label>
+                  <label className="text-slate-400 font-medium mb-1 block">{t('custom.forwarding')}</label>
                   <input
                     type="number"
                     value={forwardingMpps}
@@ -354,7 +356,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
 
               {/* Description */}
               <div>
-                <label className="text-slate-400 font-medium mb-1 block">简要说明</label>
+                <label className="text-slate-400 font-medium mb-1 block">{t('custom.desc')}</label>
                 <textarea
                   rows={2}
                   value={description}
@@ -371,7 +373,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
                   onClick={onClose}
                   className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
                 >
-                  取消
+                  {t('custom.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -400,7 +402,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
                   onClick={onClose}
                   className="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-xs"
                 >
-                  取消
+                  {t('custom.cancel')}
                 </button>
                 <button
                   type="button"

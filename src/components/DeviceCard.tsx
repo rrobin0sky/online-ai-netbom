@@ -5,14 +5,13 @@ import {
   GitCompare,
   Zap,
   Server,
-  Layers,
   Calendar,
   AlertTriangle,
   CheckCircle2,
-  Package,
 } from 'lucide-react';
 import { DeviceItem } from '../types/device';
 import { useBOMStore } from '../store/useBOMStore';
+import { useI18n } from '../i18n';
 
 interface DeviceCardProps {
   device: DeviceItem;
@@ -25,6 +24,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
     diffDeviceIds,
     globalDiscountRate,
   } = useBOMStore();
+  const { t, lang } = useI18n();
 
   const [selectedArea, setSelectedArea] = useState('接入层');
 
@@ -77,11 +77,11 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
             </span>
             {isEol ? (
               <span className="flex items-center gap-1 text-[10px] font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
-                <AlertTriangle className="w-2.5 h-2.5" /> 已停产退市
+                <AlertTriangle className="w-2.5 h-2.5" /> {t('card.eolBadge')}
               </span>
             ) : (
               <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                <CheckCircle2 className="w-2.5 h-2.5" /> 现役在售
+                <CheckCircle2 className="w-2.5 h-2.5" /> {t('card.activeBadge')}
               </span>
             )}
           </div>
@@ -100,14 +100,14 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
           <div className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-2">
             <span>P/N: <strong className="text-slate-200">{device.part_number}</strong></span>
             <span>•</span>
-            <span className="text-sky-400/90 font-sans">{device.specs.layer} 层级</span>
+            <span className="text-sky-400/90 font-sans">{device.specs.layer} {lang === 'zh' ? '层级' : 'Layer'}</span>
           </div>
         </div>
 
         {/* Description / EOL Warning */}
         {isEol && device.replacement_model ? (
           <div className="p-2.5 mb-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-200">
-            ⚠️ 厂商已停产，招投标请采用推荐替代型号：
+            {lang === 'zh' ? '⚠️ 厂商已停产，招投标请采用推荐替代型号：' : '⚠️ Discontinued. Recommended replacement: '}
             <strong className="text-white ml-1 underline">{device.replacement_model}</strong>
           </div>
         ) : (
@@ -122,44 +122,46 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
           <div className="flex items-start gap-2">
             <Server className="w-3.5 h-3.5 text-sky-400 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] uppercase text-slate-500 font-mono">端口矩阵 (Ports)</div>
-              <div className="text-slate-200 font-medium truncate" title={device.specs.ports.summary}>
+              <div className="text-[10px] uppercase text-slate-500 font-mono">
+                {lang === 'zh' ? '端口矩阵 (Ports)' : 'Ports Matrix'}
+              </div>
+              <div className="text-slate-200 font-mono font-medium text-[11px] truncate">
                 {device.specs.ports.summary}
               </div>
             </div>
           </div>
 
-          {/* Performance & PoE */}
-          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5 text-[11px]">
+          {/* Quick Metrics Grid */}
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 pt-1.5 border-t border-white/5 text-[11px]">
             <div>
-              <span className="text-slate-500">交换容量:</span>{' '}
+              <span className="text-slate-500">{t('card.switching')}:</span>{' '}
               <strong className="text-slate-200 font-mono">
                 {device.specs.switching_capacity_gbps} Gbps
               </strong>
             </div>
             <div>
-              <span className="text-slate-500">包转发率:</span>{' '}
+              <span className="text-slate-500">{t('card.forwarding')}:</span>{' '}
               <strong className="text-slate-200 font-mono">
                 {device.specs.forwarding_rate_mpps} Mpps
               </strong>
             </div>
             <div>
-              <span className="text-slate-500">PoE 供电:</span>{' '}
+              <span className="text-slate-500">{t('card.power')}:</span>{' '}
               {device.specs.poe.supported ? (
                 <span className="text-amber-300 font-semibold inline-flex items-center gap-0.5">
                   <Zap className="w-2.5 h-2.5" /> {device.specs.poe.budget_watts}W
                 </span>
               ) : (
-                <span className="text-slate-500">不支持</span>
+                <span className="text-slate-500">{lang === 'zh' ? '不支持' : 'No PoE'}</span>
               )}
             </div>
             <div>
-              <span className="text-slate-500">电源配置:</span>{' '}
+              <span className="text-slate-500">{lang === 'zh' ? '电源配置:' : 'PSU:'}</span>{' '}
               <span className="text-slate-300">
                 {device.specs.power_supply.type === 'modular'
-                  ? `模块插槽 x${device.specs.power_supply.slots}`
-                  : '固定电源'}
-                {device.specs.power_supply.redundancy_supported && ' (双电冗余)'}
+                  ? (lang === 'zh' ? `模块插槽 x${device.specs.power_supply.slots}` : `Modular x${device.specs.power_supply.slots}`)
+                  : (lang === 'zh' ? '固定电源' : 'Fixed AC')}
+                {device.specs.power_supply.redundancy_supported && (lang === 'zh' ? ' (双电冗余)' : ' (Redundant)')}
               </span>
             </div>
           </div>
@@ -172,18 +174,18 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
         <div className="flex items-end justify-between">
           <div>
             <div className="text-[10px] text-slate-500">
-              官方目录指导价 (GPL)
+              {t('card.listPrice')}
             </div>
             {gpl !== null ? (
               <div className="text-lg font-bold font-mono text-white tracking-tight">
                 ¥{gpl.toLocaleString()}
                 <span className="text-xs font-normal text-slate-400 ml-1.5 font-sans">
-                  (参考折后 ~¥{estimatedCost?.toLocaleString()})
+                  ({lang === 'zh' ? '参考折后' : 'Est.'} ~¥{estimatedCost?.toLocaleString()})
                 </span>
               </div>
             ) : (
               <div className="text-sm font-medium text-amber-400 flex items-center gap-1">
-                待渠道核价 (TBD)
+                {t('card.unlisted')}
               </div>
             )}
           </div>
@@ -194,10 +196,10 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300 transition-colors p-1"
-            title="查看厂商官网白皮书规范"
+            title={lang === 'zh' ? '查看厂商官网白皮书规范' : 'View official vendor datasheet'}
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">官网白皮书</span>
+            <span className="hidden sm:inline">{lang === 'zh' ? '官网白皮书' : 'Datasheet'}</span>
           </a>
         </div>
 
@@ -205,10 +207,10 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
         <div className="text-[10px] text-slate-500 flex items-center justify-between">
           <span className="flex items-center gap-1">
             <Calendar className="w-3 h-3 text-slate-500" />
-            规格核验: {device.metadata.specs_verified_at}
+            {lang === 'zh' ? '规格核验:' : 'Verified:'} {device.metadata.specs_verified_at}
           </span>
           {device.pricing.price_verified_at && (
-            <span>报价有效性: {device.pricing.price_verified_at}</span>
+            <span>{lang === 'zh' ? '报价有效性:' : 'Price Valid:'} {device.pricing.price_verified_at}</span>
           )}
         </div>
 
@@ -220,11 +222,11 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
             onChange={(e) => setSelectedArea(e.target.value)}
             className="glass-input rounded-xl px-2.5 py-2 text-xs text-slate-300 font-medium"
           >
-            <option value="核心层">核心层</option>
-            <option value="汇聚层">汇聚层</option>
-            <option value="接入层">接入层</option>
-            <option value="外联安全区">外联安全区</option>
-            <option value="机房服务器区">机房服务器区</option>
+            <option value="核心层">{lang === 'zh' ? '核心层' : 'Core Layer'}</option>
+            <option value="汇聚层">{lang === 'zh' ? '汇聚层' : 'Aggregation'}</option>
+            <option value="接入层">{lang === 'zh' ? '接入层' : 'Access Layer'}</option>
+            <option value="外联安全区">{lang === 'zh' ? '外联安全区' : 'DMZ / Edge'}</option>
+            <option value="机房服务器区">{lang === 'zh' ? '机房服务器区' : 'Server Pod'}</option>
           </select>
 
           {/* Add to BOM Button */}
@@ -233,7 +235,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-300 hover:bg-sky-500 hover:text-white text-xs font-semibold transition-all shadow-sm active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>加到 BOM</span>
+            <span>{t('card.addToBOM')}</span>
           </button>
 
           {/* Add to Compare */}
@@ -244,7 +246,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
                 ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
                 : 'glass-input text-slate-400 hover:text-white'
             }`}
-            title="加入横向对比"
+            title={lang === 'zh' ? '加入横向对比' : 'Add to compare'}
           >
             <GitCompare className="w-4 h-4" />
           </button>

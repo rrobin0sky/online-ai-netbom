@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" class="dark">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -7,14 +7,71 @@
     <meta name="theme-color" content="#090a0d" />
     <title>NetBOM — 企业级网络设备选型与智能物料报价工作台</title>
     <meta name="description" content="专为网络架构师与系统集成商打造的设备选型、参数比对、配件防呆校验与工程报价单生成工具。" />
+    
+    <!-- Instant FOUC-prevention Theme & Language Init -->
+    <script>
+      (function() {
+        function applyTheme(isDark) {
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+            if (document.body) {
+              document.body.classList.add('dark');
+              document.body.classList.remove('light');
+            }
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+            if (document.body) {
+              document.body.classList.remove('dark');
+              document.body.classList.add('light');
+            }
+          }
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', isDark ? '#090a0d' : '#f8fafc');
+        }
+
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var urlTheme = params.get('b0_theme');
+          var savedTheme = urlTheme || localStorage.getItem('b0_theme');
+          var isDark = savedTheme ? (savedTheme === 'dark') : true;
+          applyTheme(isDark);
+
+          var urlLang = params.get('b0_lang');
+          var savedLang = urlLang || localStorage.getItem('b0_lang');
+          if (savedLang) {
+            var norm = savedLang.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en';
+            document.documentElement.setAttribute('lang', norm);
+          }
+
+          if (params.get('b0_embedded') === '1' || window.top !== window.self) {
+            document.documentElement.classList.add('b0-embedded');
+          }
+        } catch (e) {}
+
+        window.addEventListener('message', function(e) {
+          if (!e.data) return;
+          if (e.data.type === 'B0_THEME_CHANGE') {
+            applyTheme(e.data.theme === 'dark');
+          }
+        });
+        window.addEventListener('b0-theme-change', function(e) {
+          if (e.detail) {
+            applyTheme(e.detail.theme === 'dark');
+          }
+        });
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-[#090a0f] text-slate-100 antialiased selection:bg-cyan-500/20 selection:text-cyan-300">
+  <body class="antialiased selection:bg-cyan-500/20 selection:text-cyan-300">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- bin0sky Universal Nav Pill Integration -->
-    <script src="./nav-pill.js" defer></script>
+    <script src="/nav-pill.js" defer></script>
   </body>
 </html>

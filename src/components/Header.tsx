@@ -1,6 +1,7 @@
 import React from 'react';
 import { Network, FileSpreadsheet, GitCompare, Search, ShieldCheck, Plus, Layers } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
+import { useI18n } from '../i18n';
 
 interface HeaderProps {
   onOpenAddDevice?: () => void;
@@ -10,14 +11,13 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates }) => {
   const {
     items,
-    isDrawerOpen,
     toggleDrawer,
     diffDeviceIds,
-    clearDiff,
     searchQuery,
     setSearchQuery,
     globalDiscountRate,
   } = useBOMStore();
+  const { t, lang } = useI18n();
 
   const totalItemCount = items.reduce((acc, cur) => acc + cur.quantity, 0);
 
@@ -52,20 +52,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates
               <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
                 NetBOM
                 <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                  v1.0 Pro
+                  {t('header.version')}
                 </span>
               </h1>
               <span className="hidden sm:inline-block text-xs text-slate-500">•</span>
               <span className="hidden sm:inline-block text-xs text-slate-400 font-medium">
-                企业网络设备选型与智能物料报价
+                {t('header.tagline')}
               </span>
             </div>
             <div className="text-[11px] text-slate-500 flex items-center gap-2">
               <span className="flex items-center gap-1 text-emerald-400/90">
-                <ShieldCheck className="w-3 h-3" /> 官网规格溯源
+                <ShieldCheck className="w-3 h-3" /> {lang === 'zh' ? '官网规格溯源' : 'Official Datasheet Specs'}
               </span>
               <span>•</span>
-              <span>Local-First 商业隐私加密</span>
+              <span>{lang === 'zh' ? 'Local-First 商业隐私加密' : 'Local-First Privacy Architecture'}</span>
             </div>
           </div>
         </div>
@@ -78,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="快速搜索型号、P/N编码、特性 (如 S5735, 48口PoE+, 25G)..."
+              placeholder={t('header.searchPlaceholder')}
               className="w-full glass-input rounded-xl pl-10 pr-4 py-2 text-xs placeholder:text-slate-500"
             />
             {searchQuery && (
@@ -99,10 +99,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates
             <button
               onClick={onOpenTemplates}
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl glass-panel text-slate-300 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors"
-              title="载入行业拓扑预置模板"
+              title={lang === 'zh' ? '载入行业拓扑预置模板' : 'Load network topology template'}
             >
               <Layers className="w-3.5 h-3.5 text-indigo-400" />
-              <span>拓扑模板</span>
+              <span>{t('header.templates')}</span>
             </button>
           )}
 
@@ -111,10 +111,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates
             <button
               onClick={onOpenAddDevice}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/25 text-sky-300 text-xs font-semibold transition-colors"
-              title="录入新设备规格"
+              title={lang === 'zh' ? '录入新设备规格' : 'Add custom equipment specs'}
             >
               <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">录入设备</span>
+              <span className="hidden sm:inline">{t('header.addCustom')}</span>
             </button>
           )}
 
@@ -128,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium hover:bg-amber-500/20 transition-colors"
             >
               <GitCompare className="w-3.5 h-3.5" />
-              <span>对比 ({diffDeviceIds.length})</span>
+              <span>{t('header.diff')} ({diffDeviceIds.length})</span>
             </button>
           )}
 
@@ -143,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddDevice, onOpenTemplates
           >
             <FileSpreadsheet className="w-4 h-4" />
             <div className="flex items-center gap-1.5">
-              <span>BOM 清单</span>
+              <span>BOM</span>
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                   totalItemCount > 0 ? 'bg-white text-sky-700' : 'bg-slate-800 text-slate-400'

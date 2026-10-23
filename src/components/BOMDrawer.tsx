@@ -15,10 +15,12 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
+import { useI18n } from '../i18n';
 import { exportBOMToExcel } from '../utils/excel-export';
 import { SEED_ACCESSORIES } from '../data/seedDevices';
 
 export const BOMDrawer: React.FC = () => {
+  const { t, lang } = useI18n();
   const {
     items,
     isDrawerOpen,
@@ -162,7 +164,7 @@ export const BOMDrawer: React.FC = () => {
                   }
                 }}
                 className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                title="清空清单"
+                title={t("drawer.clearConfirm")}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -228,7 +230,7 @@ export const BOMDrawer: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-slate-400">增值税专用发票:</span>
+            <span className="text-slate-400">{t('drawer.vatInvoice')}:</span>
             <select
               value={taxRate}
               onChange={(e) => setTaxRate(parseFloat(e.target.value))}
@@ -247,7 +249,7 @@ export const BOMDrawer: React.FC = () => {
             <div className="py-20 text-center space-y-3">
               <AlertCircle className="w-10 h-10 text-slate-600 mx-auto" />
               <div className="text-sm font-medium text-slate-400">
-                当前 BOM 清单为空
+                {t('drawer.empty')}
               </div>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
                 从左侧设备矩阵中挑选需要的交换机、路由器或防火墙，点击「加到 BOM」即可开始编制。
@@ -335,7 +337,9 @@ export const BOMDrawer: React.FC = () => {
                           <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 flex items-center justify-between">
                             <span className="flex items-center gap-1.5">
                               <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
-                              该机型出厂为裸机（不含电源），请务必配齐电源模块！
+                              {lang === 'zh'
+                                ? '该机型出厂为裸机（不含电源），请务必配齐电源模块！'
+                                : 'Chassis shipped without PSU. Ensure power modules are added!'}
                             </span>
                             <button
                               onClick={() => {
@@ -346,7 +350,7 @@ export const BOMDrawer: React.FC = () => {
                               }}
                               className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 font-medium text-[10px] whitespace-nowrap ml-2"
                             >
-                              一键配双电源
+                              {lang === 'zh' ? '一键配双电源' : 'Add Dual PSUs'}
                             </button>
                           </div>
                         )}
@@ -355,7 +359,7 @@ export const BOMDrawer: React.FC = () => {
                         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5 text-xs">
                           {/* Quantity Counter */}
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] text-slate-500">数量:</span>
+                            <span className="text-[11px] text-slate-500">{t('drawer.quantity')}</span>
                             <div className="flex items-center glass-input rounded-lg overflow-hidden">
                               <button
                                 onClick={() =>
@@ -382,7 +386,7 @@ export const BOMDrawer: React.FC = () => {
                           {/* Unit Price Custom Override */}
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] text-slate-500">
-                              销售单价:
+                              {lang === 'zh' ? '销售单价:' : 'Unit Price:'}
                             </span>
                             <div className="relative">
                               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
@@ -399,7 +403,7 @@ export const BOMDrawer: React.FC = () => {
                                 }}
                                 className="w-28 glass-input rounded-lg pl-6 pr-2 py-1 font-mono text-xs text-white"
                                 placeholder={
-                                  gpl ? (gpl * effectiveDiscount).toFixed(0) : '自定义'
+                                  gpl ? (gpl * effectiveDiscount).toFixed(0) : (lang === 'zh' ? '自定义' : 'Custom')
                                 }
                               />
                             </div>
@@ -407,7 +411,7 @@ export const BOMDrawer: React.FC = () => {
 
                           {/* Item Subtotal */}
                           <div className="text-right">
-                            <div className="text-[10px] text-slate-500">合价金额</div>
+                            <div className="text-[10px] text-slate-500">{lang === 'zh' ? '合价金额' : 'Subtotal'}</div>
                             <div className="font-mono font-bold text-sky-400 text-sm">
                               ¥{itemTotal.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
                             </div>
@@ -419,8 +423,8 @@ export const BOMDrawer: React.FC = () => {
                           item.selectedAccessories.length > 0 && (
                             <div className="bg-black/20 rounded-xl p-2.5 space-y-1.5 border border-white/5">
                               <div className="text-[10px] uppercase font-mono text-slate-500 flex items-center justify-between">
-                                <span>已选配辅件 (Accessories)</span>
-                                <span>分项合计: ¥{accTotal * item.quantity}</span>
+                                <span>{lang === 'zh' ? '已选配辅件 (Accessories)' : 'Selected Accessories'}</span>
+                                <span>{lang === 'zh' ? '分项合计:' : 'Subtotal:'} ¥{accTotal * item.quantity}</span>
                               </div>
                               <div className="space-y-1">
                                 {item.selectedAccessories.map((acc) => (
@@ -466,8 +470,8 @@ export const BOMDrawer: React.FC = () => {
                             <PackagePlus className="w-3.5 h-3.5" />
                             <span>
                               {activeAccessoryUID === item.uid
-                                ? '收起辅件选单'
-                                : '+ 搭配光模块 / 电源 / 堆叠线'}
+                                ? (lang === 'zh' ? '收起辅件选单' : 'Collapse accessories')
+                                : (lang === 'zh' ? '+ 搭配光模块 / 电源 / 堆叠线' : '+ Add SFP / PSU / DAC Accessories')}
                             </span>
                           </button>
                         </div>
@@ -476,7 +480,7 @@ export const BOMDrawer: React.FC = () => {
                         {activeAccessoryUID === item.uid && (
                           <div className="p-3 rounded-xl bg-slate-900/90 border border-sky-500/20 space-y-2 mt-2">
                             <div className="text-[10px] text-slate-400 font-semibold">
-                              快捷加购推荐网络配件：
+                              {lang === 'zh' ? '快捷加购推荐网络配件：' : 'Quick add accessories:'}
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               {SEED_ACCESSORIES.map((acc) => (
@@ -516,7 +520,11 @@ export const BOMDrawer: React.FC = () => {
               <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>
-                  当前清单中包含 <strong>{pendingCount}</strong> 款未录入指导价的设备，总价已暂时剔除未定价项。
+                  {lang === 'zh' ? (
+                    <>当前清单中包含 <strong>{pendingCount}</strong> 款未录入指导价的设备，总价已暂时剔除未定价项。</>
+                  ) : (
+                    <>Contains <strong>{pendingCount}</strong> unlisted price item(s); excluded from total.</>
+                  )}
                 </span>
               </div>
             )}
@@ -524,14 +532,14 @@ export const BOMDrawer: React.FC = () => {
             {/* Figures Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div className="p-2.5 rounded-xl bg-white/5">
-                <div className="text-[10px] text-slate-500">目录指导总价(GPL)</div>
+                <div className="text-[10px] text-slate-500">{lang === 'zh' ? '目录指导总价(GPL)' : 'Total GPL'}</div>
                 <div className="font-mono font-bold text-slate-300 text-sm mt-0.5">
                   ¥{totalGPL.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
                 </div>
               </div>
 
               <div className="p-2.5 rounded-xl bg-white/5">
-                <div className="text-[10px] text-slate-500">方案未税总价</div>
+                <div className="text-[10px] text-slate-500">{lang === 'zh' ? '方案未税总价' : 'Excl. Tax Total'}</div>
                 <div className="font-mono font-bold text-sky-400 text-sm mt-0.5">
                   ¥{totalQuotedPrice.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
                 </div>
@@ -539,7 +547,7 @@ export const BOMDrawer: React.FC = () => {
 
               <div className="p-2.5 rounded-xl bg-white/5">
                 <div className="text-[10px] text-slate-500">
-                  增值税额 ({(taxRate * 100).toFixed(0)}%)
+                  {lang === 'zh' ? '增值税额' : 'VAT Amount'} ({(taxRate * 100).toFixed(0)}%)
                 </div>
                 <div className="font-mono font-bold text-slate-400 text-sm mt-0.5">
                   ¥{taxAmount.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
@@ -582,7 +590,9 @@ export const BOMDrawer: React.FC = () => {
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 <span>
-                  {isExporting ? '正在生成 Excel...' : '导出工业级工程报价单 (.xlsx)'}
+                  {isExporting 
+                    ? (lang === 'zh' ? '正在生成 Excel...' : 'Generating...') 
+                    : (lang === 'zh' ? '导出工业级工程报价单 (.xlsx)' : 'Export Excel BOM (.xlsx)')}
                 </span>
               </button>
             </div>

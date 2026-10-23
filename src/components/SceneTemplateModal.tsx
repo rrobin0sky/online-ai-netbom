@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, Layers, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { X, Layers, ArrowRight } from 'lucide-react';
 import { SCENE_TEMPLATES, ProjectTemplate } from '../data/templates';
 import { useBOMStore } from '../store/useBOMStore';
+import { useI18n } from '../i18n';
 
 interface SceneTemplateModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ export const SceneTemplateModal: React.FC<SceneTemplateModalProps> = ({
   onClose,
 }) => {
   const { loadSceneTemplate } = useBOMStore();
+  const { t, lang } = useI18n();
 
   if (!isOpen) return null;
 
@@ -36,13 +38,13 @@ export const SceneTemplateModal: React.FC<SceneTemplateModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                行业与场景化经典拓扑方案模板
+                {t('template.title')}
                 <span className="text-xs font-mono font-normal text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
                   1-Click Load
                 </span>
               </h2>
               <p className="text-[11px] text-slate-400">
-                一键加载经过工程验证的交换机、光模块与电源搭配，快速修改微调
+                {t('template.subtitle')}
               </p>
             </div>
           </div>
@@ -64,19 +66,19 @@ export const SceneTemplateModal: React.FC<SceneTemplateModalProps> = ({
             >
               <div>
                 <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 mb-2 font-mono">
-                  {tmpl.badge}
+                  {lang === 'zh' ? tmpl.badge : (tmpl.badgeEn || tmpl.badge)}
                 </span>
                 <h3 className="text-sm font-bold text-white mb-2 leading-snug">
-                  {tmpl.name}
+                  {lang === 'zh' ? tmpl.name : (tmpl.nameEn || tmpl.name)}
                 </h3>
                 <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                  {tmpl.description}
+                  {lang === 'zh' ? tmpl.description : (tmpl.descriptionEn || tmpl.description)}
                 </p>
 
                 {/* Included Summary */}
                 <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1.5 text-[11px] mb-4">
                   <div className="text-[10px] uppercase font-mono text-slate-500">
-                    预置物料构成：
+                    {lang === 'zh' ? '预置物料构成：' : 'Pre-Configured Items:'}
                   </div>
                   {tmpl.items.map((item, idx) => (
                     <div
@@ -84,17 +86,17 @@ export const SceneTemplateModal: React.FC<SceneTemplateModalProps> = ({
                       className="flex items-center justify-between text-slate-300"
                     >
                       <span className="font-mono text-slate-400">
-                        {item.areaGroup}
+                        {lang === 'zh' ? item.areaGroup : (item.areaGroupEn || item.areaGroup)}
                       </span>
                       <span className="font-mono text-sky-400 font-bold">
-                        x{item.quantity} 台
+                        x{item.quantity} {lang === 'zh' ? '台' : 'units'}
                       </span>
                     </div>
                   ))}
                   <div className="pt-1 border-t border-white/5 text-[10px] text-slate-400 flex justify-between">
-                    <span>推荐行业折扣:</span>
+                    <span>{lang === 'zh' ? '推荐行业折扣:' : 'Rec. Discount:'}</span>
                     <span className="font-mono text-amber-400 font-semibold">
-                      {(tmpl.recommendedDiscount * 10).toFixed(1)} 折
+                      {(tmpl.recommendedDiscount * 10).toFixed(1)} {lang === 'zh' ? '折' : 'x'}
                     </span>
                   </div>
                 </div>
@@ -105,7 +107,7 @@ export const SceneTemplateModal: React.FC<SceneTemplateModalProps> = ({
                 onClick={() => handleApply(tmpl)}
                 className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-indigo-500/20 hover:bg-indigo-500 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-bold transition-all shadow-md active:scale-95"
               >
-                <span>一键载入此方案</span>
+                <span>{t('template.apply')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

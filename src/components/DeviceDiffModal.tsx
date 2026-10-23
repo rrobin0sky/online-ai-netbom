@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, GitCompare, ExternalLink, Plus, Check } from 'lucide-react';
+import { X, GitCompare, ExternalLink, Plus } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
+import { useI18n } from '../i18n';
 import { SEED_DEVICES } from '../data/seedDevices';
 
 interface DeviceDiffModalProps {
@@ -13,6 +14,7 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
   onClose,
 }) => {
   const { diffDeviceIds, toggleDiffDevice, clearDiff, addItem } = useBOMStore();
+  const { t, lang } = useI18n();
 
   if (!isOpen || diffDeviceIds.length === 0) return null;
 
@@ -42,13 +44,13 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                多机型横向技术规格 Diff 对比
+                {t('diff.title')}
                 <span className="text-xs font-mono font-normal text-slate-400 bg-white/5 px-2 py-0.5 rounded-full">
-                  已选 {comparedDevices.length} 款
+                  {comparedDevices.length} {lang === 'zh' ? '款机型' : 'Selected'}
                 </span>
               </h2>
               <p className="text-[11px] text-slate-400">
-                直观对比关键性能、端口密度、PoE 供电与商务指导价
+                {t('diff.subtitle')}
               </p>
             </div>
           </div>
@@ -56,13 +58,13 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={clearDiff}
-              className="px-3 py-1.5 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-white/10"
+              className="px-3 py-1.5 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
             >
-              清空比选
+              {t('diff.clearAll')}
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -75,7 +77,7 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
             <thead>
               <tr>
                 <th className="p-3 w-40 text-slate-400 font-mono uppercase bg-white/5 rounded-l-xl">
-                  比选参数项
+                  {lang === 'zh' ? '比选参数项' : 'Specification'}
                 </th>
                 {comparedDevices.map((d) => (
                   <th
@@ -88,8 +90,8 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
                       </span>
                       <button
                         onClick={() => toggleDiffDevice(d.id)}
-                        className="text-slate-500 hover:text-rose-400 p-0.5"
-                        title="从比选中移除"
+                        className="text-slate-500 hover:text-rose-400 p-0.5 transition-colors"
+                        title={lang === 'zh' ? '从比选中移除' : 'Remove from diff'}
                       >
                         ✕
                       </button>
@@ -102,11 +104,11 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
                     </div>
 
                     <button
-                      onClick={() => addItem(d, '接入层')}
+                      onClick={() => addItem(d, lang === 'zh' ? '接入层' : 'Access Layer')}
                       className="w-full mt-3 flex items-center justify-center gap-1 py-1.5 px-3 rounded-lg bg-sky-500/20 hover:bg-sky-500 text-sky-300 hover:text-white font-semibold transition-all text-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>加到 BOM</span>
+                      <span>{t('diff.addToBOM')}</span>
                     </button>
                   </th>
                 ))}
@@ -115,7 +117,9 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
             <tbody className="divide-y divide-white/5 font-sans">
               {/* Form Factor */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">机箱规格 (U)</td>
+                <td className="p-3 text-slate-400 font-medium">
+                  {lang === 'zh' ? '机箱规格 (U)' : 'Form Factor (U)'}
+                </td>
                 {comparedDevices.map((d) => (
                   <td key={d.id} className="p-3 text-slate-200 border-l border-white/5 font-mono">
                     {d.specs.form_factor}
@@ -125,7 +129,9 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
 
               {/* Layer */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">网络层级</td>
+                <td className="p-3 text-slate-400 font-medium">
+                  {t('diff.layer')}
+                </td>
                 {comparedDevices.map((d) => (
                   <td key={d.id} className="p-3 text-slate-200 border-l border-white/5">
                     {d.specs.layer}
@@ -135,7 +141,9 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
 
               {/* Ports Summary */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">端口规格</td>
+                <td className="p-3 text-slate-400 font-medium">
+                  {t('diff.ports')}
+                </td>
                 {comparedDevices.map((d) => (
                   <td key={d.id} className="p-3 text-slate-200 border-l border-white/5 font-medium leading-relaxed">
                     {d.specs.ports.summary}
@@ -145,7 +153,9 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
 
               {/* Switching Capacity */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">交换容量 (Gbps)</td>
+                <td className="p-3 text-slate-400 font-medium">
+                  {t('diff.switching')} (Gbps)
+                </td>
                 {comparedDevices.map((d) => {
                   const isBest = d.specs.switching_capacity_gbps === maxCapacity;
                   return (
@@ -166,7 +176,9 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
 
               {/* Forwarding Rate */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">包转发率 (Mpps)</td>
+                <td className="p-3 text-slate-400 font-medium">
+                  {t('diff.forwarding')} (Mpps)
+                </td>
                 {comparedDevices.map((d) => {
                   const isBest = d.specs.forwarding_rate_mpps === maxForwarding;
                   return (
@@ -187,7 +199,9 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
 
               {/* PoE Budget */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">PoE 供电能力</td>
+                <td className="p-3 text-slate-400 font-medium">
+                  {t('diff.poe')}
+                </td>
                 {comparedDevices.map((d) => (
                   <td key={d.id} className="p-3 border-l border-white/5">
                     {d.specs.poe.supported ? (
@@ -195,7 +209,7 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
                         {d.specs.poe.budget_watts}W ({d.specs.poe.standard})
                       </span>
                     ) : (
-                      <span className="text-slate-500">不支持</span>
+                      <span className="text-slate-500">{lang === 'zh' ? '不支持' : 'Not supported'}</span>
                     )}
                   </td>
                 ))}
@@ -203,32 +217,40 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
 
               {/* Power Supply */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">电源冗余与形态</td>
+                <td className="p-3 text-slate-400 font-medium">
+                  {t('diff.power')}
+                </td>
                 {comparedDevices.map((d) => (
                   <td key={d.id} className="p-3 text-slate-300 border-l border-white/5">
                     {d.specs.power_supply.type === 'modular'
-                      ? `插槽 x${d.specs.power_supply.slots} (标配 ${d.specs.power_supply.default_included})`
-                      : '固定电源'}
-                    {d.specs.power_supply.redundancy_supported && ' [支持1+1冗余]'}
+                      ? (lang === 'zh'
+                          ? `插槽 x${d.specs.power_supply.slots} (标配 ${d.specs.power_supply.default_included})`
+                          : `Slots x${d.specs.power_supply.slots} (Default ${d.specs.power_supply.default_included})`)
+                      : (lang === 'zh' ? '固定电源' : 'Fixed Internal')}
+                    {d.specs.power_supply.redundancy_supported && (lang === 'zh' ? ' [支持1+1冗余]' : ' [1+1 Redundant]')}
                   </td>
                 ))}
               </tr>
 
               {/* GPL Price */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">目录指导面价 (GPL)</td>
+                <td className="p-3 text-slate-400 font-medium">
+                  {t('diff.listPrice')}
+                </td>
                 {comparedDevices.map((d) => (
                   <td key={d.id} className="p-3 border-l border-white/5 font-mono font-bold text-white text-sm">
                     {d.pricing.list_price_gpl
                       ? `¥${d.pricing.list_price_gpl.toLocaleString()}`
-                      : '待询价'}
+                      : (lang === 'zh' ? '待询价' : 'Inquire')}
                   </td>
                 ))}
               </tr>
 
               {/* Official Spec URL */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">官网数据凭据</td>
+                <td className="p-3 text-slate-400 font-medium">
+                  {lang === 'zh' ? '官网数据凭据' : 'Official Spec'}
+                </td>
                 {comparedDevices.map((d) => (
                   <td key={d.id} className="p-3 border-l border-white/5">
                     <a
@@ -238,7 +260,7 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
                       className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 text-[11px]"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      <span>查看官方白皮书</span>
+                      <span>{lang === 'zh' ? '查看官方白皮书' : 'Datasheet'}</span>
                     </a>
                   </td>
                 ))}

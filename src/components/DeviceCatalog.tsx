@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { DeviceCard } from './DeviceCard';
 import { SEED_DEVICES } from '../data/seedDevices';
 import { useBOMStore } from '../store/useBOMStore';
+import { useI18n } from '../i18n';
 import { SearchX, Filter } from 'lucide-react';
 
 export const DeviceCatalog: React.FC = () => {
@@ -14,6 +15,7 @@ export const DeviceCatalog: React.FC = () => {
     poeOnly,
     hideEol,
   } = useBOMStore();
+  const { t } = useI18n();
 
   const allDevices = useMemo(() => {
     return [...customDevices, ...SEED_DEVICES];
@@ -92,15 +94,15 @@ export const DeviceCatalog: React.FC = () => {
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-sky-400" />
           <h2 className="text-sm font-semibold text-slate-200">
-            符合条件设备清单
+            {t('catalog.title')}
           </h2>
           <span className="text-xs font-mono text-slate-500 bg-white/5 px-2 py-0.5 rounded-full">
-            {filteredDevices.length} 款机型
+            {filteredDevices.length} {t('catalog.count')}
           </span>
         </div>
 
         <div className="text-xs text-slate-500">
-          支持多维联动筛选与参数对齐
+          {t('catalog.tip')}
         </div>
       </div>
 
@@ -118,9 +120,9 @@ export const DeviceCatalog: React.FC = () => {
             <SearchX className="w-8 h-8 text-sky-400" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">未找到匹配的设备</h3>
+            <h3 className="text-base font-bold text-white">{t('catalog.emptyTitle')}</h3>
             <p className="text-xs text-slate-400 mt-1">
-              没有找到符合当前筛选条件的网络设备。请尝试调整品牌、端口速率或取消 PoE 限制。
+              {t('catalog.emptyDesc')}
             </p>
           </div>
         </div>
