@@ -18,6 +18,9 @@ interface DeviceCardProps {
   onEditDevice?: (device: DeviceItem) => void;
 }
 
+const CARD_BTN =
+  'h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-200 hover:text-white text-xs font-medium inline-flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap';
+
 export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) => {
   const {
     items,
@@ -73,32 +76,32 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
 
   return (
     <div
-      className={`glass-panel rounded-xl p-4 transition-all duration-150 hover:border-white/25 ${
-        isDiffSelected ? 'ring-1 ring-zinc-300 border-zinc-400' : ''
+      className={`glass-panel rounded-xl p-3.5 transition-all duration-150 hover:border-white/20 ${
+        isDiffSelected ? 'border-white/30 bg-white/[0.04]' : ''
       }`}
     >
-      {/* Primary Compact Area (Always Visible: Brand, Model, Price) */}
+      {/* Primary Compact Area (Brand, Model, Price) */}
       <div
         onClick={() => setIsExpanded(!isExpanded)}
         className="cursor-pointer select-none"
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-2.5">
           {/* Left: Brand + Model */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-white/[0.06] text-zinc-300 border border-white/10">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="px-1.5 py-0.5 rounded text-[11px] font-mono font-medium bg-white/[0.05] text-zinc-300 border border-white/10">
                 {device.brand}
               </span>
               <h3 className="text-sm font-bold text-zinc-100 tracking-tight truncate">
                 {device.model}
               </h3>
               {isEol && (
-                <span className="text-[10px] font-medium text-zinc-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-medium text-zinc-400 bg-white/[0.05] border border-white/10 px-1.5 py-0.5 rounded">
                   停产
                 </span>
               )}
             </div>
-            <div className="text-[11px] text-zinc-400 truncate mt-1">
+            <div className="text-xs text-zinc-400 truncate mt-1">
               {device.specs.ports.summary}
             </div>
           </div>
@@ -117,7 +120,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
                 )}
               </div>
             ) : (
-              <span className="text-xs font-medium text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+              <span className="text-xs font-medium text-zinc-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/10">
                 待核价
               </span>
             )}
@@ -130,31 +133,31 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-100 py-1 transition-colors"
+          className={CARD_BTN}
         >
           {isExpanded ? (
             <>
-              <ChevronUp className="w-3.5 h-3.5" />
-              <span>收起参数</span>
+              <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
+              <span>收起</span>
             </>
           ) : (
             <>
-              <ChevronDown className="w-3.5 h-3.5" />
-              <span>详细参数</span>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+              <span>详情</span>
             </>
           )}
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Quantity Selector */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center glass-input rounded-lg overflow-hidden h-7"
+            className="flex items-center bg-white/[0.04] border border-white/10 rounded-md overflow-hidden h-7"
           >
             <button
               type="button"
               onClick={() => setAddQty((q) => Math.max(1, q - 1))}
-              className="px-2 h-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+              className="w-6 h-full flex items-center justify-center hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
             >
               <Minus className="w-3 h-3" />
             </button>
@@ -163,36 +166,34 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
               min={1}
               value={addQty}
               onChange={(e) => setAddQty(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-8 text-center bg-transparent font-mono text-xs font-semibold text-zinc-100 focus:outline-none"
+              className="w-7 text-center bg-transparent font-mono text-xs font-medium text-zinc-100 focus:outline-none"
             />
             <button
               type="button"
               onClick={() => setAddQty((q) => q + 1)}
-              className="px-2 h-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+              className="w-6 h-full flex items-center justify-center hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
             >
               <Plus className="w-3 h-3" />
             </button>
           </div>
 
-          {/* Add to BOM Button (Monochrome, non-intrusive) */}
+          {/* Add to BOM Button (Same unified color & size, concise text "清单") */}
           <button
             type="button"
             onClick={handleAddToBOM}
-            className={`flex items-center justify-center gap-1 px-3 h-7 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-              isAdded
-                ? 'bg-white/10 border border-white/20 text-zinc-100 hover:bg-white/15'
-                : 'bg-zinc-100 text-zinc-900 hover:bg-white font-semibold'
+            className={`${CARD_BTN} ${
+              isAdded ? 'bg-white/[0.12] border-white/25 text-white' : ''
             }`}
           >
             {isAdded ? (
               <>
                 <Check className="w-3.5 h-3.5" />
-                <span>已添加{inBomQuantity > 0 ? ` (${inBomQuantity})` : ''}</span>
+                <span>已加{inBomQuantity > 0 ? ` (${inBomQuantity})` : ''}</span>
               </>
             ) : (
               <>
-                <Plus className="w-3.5 h-3.5" />
-                <span>加到 BOM</span>
+                <Plus className="w-3.5 h-3.5 text-zinc-400" />
+                <span>清单</span>
               </>
             )}
           </button>
@@ -203,70 +204,68 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
       {isExpanded && (
         <div className="mt-3 pt-3 border-t border-white/10 space-y-2.5 text-xs animate-in fade-in duration-150">
           {isEol && device.replacement_model && (
-            <div className="p-2 rounded-lg bg-white/5 border border-white/10 text-[11px] text-zinc-300">
+            <div className="p-2 rounded-md bg-white/[0.04] border border-white/10 text-xs text-zinc-300">
               替代型号：<strong className="text-white">{device.replacement_model}</strong>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 bg-black/30 rounded-lg p-2.5 border border-white/5 text-[11px]">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 bg-black/30 rounded-lg p-2.5 border border-white/5 text-xs">
             <div>
-              <span className="text-zinc-500">订货编码 P/N:</span>{' '}
+              <span className="text-zinc-500">编码:</span>{' '}
               <span className="font-mono text-zinc-200">{device.part_number}</span>
             </div>
             <div>
-              <span className="text-zinc-500">系列 / 形态:</span>{' '}
+              <span className="text-zinc-500">形态:</span>{' '}
               <span className="text-zinc-200">
                 {device.specs.layer} • {device.specs.form_factor}
               </span>
             </div>
             <div>
-              <span className="text-zinc-500">交换容量:</span>{' '}
-              <strong className="font-mono text-zinc-200">
+              <span className="text-zinc-500">容量:</span>{' '}
+              <span className="font-mono text-zinc-200">
                 {device.specs.switching_capacity_gbps} Gbps
-              </strong>
+              </span>
             </div>
             <div>
-              <span className="text-zinc-500">包转发率:</span>{' '}
-              <strong className="font-mono text-zinc-200">
+              <span className="text-zinc-500">转发:</span>{' '}
+              <span className="font-mono text-zinc-200">
                 {device.specs.forwarding_rate_mpps} Mpps
-              </strong>
+              </span>
             </div>
             <div>
-              <span className="text-zinc-500">PoE 供电:</span>{' '}
+              <span className="text-zinc-500">PoE:</span>{' '}
               {device.specs.poe.supported ? (
-                <span className="text-zinc-200 font-semibold">
-                  支持 ({device.specs.poe.budget_watts}W)
-                </span>
+                <span className="text-zinc-200">{device.specs.poe.budget_watts}W</span>
               ) : (
-                <span className="text-zinc-400">不支持</span>
+                <span className="text-zinc-400">无</span>
               )}
             </div>
             <div>
-              <span className="text-zinc-500">电源配置:</span>{' '}
+              <span className="text-zinc-500">电源:</span>{' '}
               <span className="text-zinc-300">
                 {device.specs.power_supply.type === 'modular'
-                  ? `插槽x${device.specs.power_supply.slots} (含${device.specs.power_supply.default_included})`
-                  : '固定电源'}
+                  ? `插槽x${device.specs.power_supply.slots}`
+                  : '固定'}
               </span>
             </div>
           </div>
 
           {device.description && (
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
+            <p className="text-xs text-zinc-400 leading-relaxed">
               {device.description}
             </p>
           )}
 
-          {/* Secondary Utility Actions: Official Link, Edit, Compare, Delete */}
-          <div className="flex items-center justify-between pt-1 text-[11px] text-zinc-500">
+          {/* Secondary Utility Actions (Uniform Button Style) */}
+          <div className="flex items-center justify-between gap-1.5 pt-1">
             <a
               href={device.metadata.official_spec_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-zinc-400 hover:text-zinc-100 px-1.5 py-0.5 rounded hover:bg-white/5"
+              className={CARD_BTN}
             >
-              <ExternalLink className="w-3 h-3" />
-              <span>官网规格</span>
+              <ExternalLink className="w-3 h-3 text-zinc-400" />
+              <span>官网</span>
             </a>
 
             <div className="flex items-center gap-1.5">
@@ -274,9 +273,9 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
                 <button
                   type="button"
                   onClick={() => onEditDevice(device)}
-                  className="flex items-center gap-1 text-zinc-400 hover:text-zinc-100 px-1.5 py-0.5 rounded hover:bg-white/5"
+                  className={CARD_BTN}
                 >
-                  <Edit3 className="w-3 h-3" />
+                  <Edit3 className="w-3 h-3 text-zinc-400" />
                   <span>编辑</span>
                 </button>
               )}
@@ -284,23 +283,21 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, onEditDevice }) 
               <button
                 type="button"
                 onClick={() => toggleDiffDevice(device.id)}
-                className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors ${
-                  isDiffSelected
-                    ? 'bg-white/15 text-white'
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
+                className={`${CARD_BTN} ${
+                  isDiffSelected ? 'bg-white/[0.12] border-white/25 text-white' : ''
                 }`}
               >
-                <GitCompare className="w-3 h-3" />
+                <GitCompare className="w-3 h-3 text-zinc-400" />
                 <span>对比</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleDelete}
-                className="flex items-center gap-1 text-zinc-500 hover:text-zinc-200 px-1.5 py-0.5 rounded hover:bg-white/5"
-                title="从设备库删除此设备"
+                className={CARD_BTN}
+                title="删除此设备"
               >
-                <Trash2 className="w-3 h-3" />
+                <Trash2 className="w-3 h-3 text-zinc-400" />
                 <span>删除</span>
               </button>
             </div>

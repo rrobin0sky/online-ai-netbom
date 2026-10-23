@@ -226,9 +226,9 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
               {!aiSettings.apiKey && (
                 <button
                   onClick={onOpenAISettings}
-                  className="px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-900 font-semibold whitespace-nowrap"
+                  className="h-7 px-2.5 rounded-md bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-zinc-100 text-xs font-medium whitespace-nowrap"
                 >
-                  去设置 API Key
+                  设置 API Key
                 </button>
               )}
             </div>
@@ -274,24 +274,24 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
                 <button
                   type="button"
                   onClick={addEmptyRow}
-                  className="flex items-center gap-1 text-zinc-300 hover:text-white px-3 py-1.5 rounded-lg bg-white/5 border border-white/10"
+                  className="h-8 px-3 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-200 hover:text-white text-xs font-medium inline-flex items-center gap-1.5"
                 >
-                  <Plus className="w-3.5 h-3.5" /> 手动添加设备行
+                  <Plus className="w-3.5 h-3.5 text-zinc-400" /> 新增行
                 </button>
 
                 <button
                   type="button"
                   onClick={handleAnalyze}
                   disabled={analyzing}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 font-bold shadow-sm disabled:opacity-50"
+                  className="h-8 px-3.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-zinc-100 hover:text-white text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {analyzing ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>正在解析并检索官网规格...</span>
+                      <span>解析中...</span>
                     </>
                   ) : (
-                    <span>AI 提取与官网参数补全</span>
+                    <span>AI 提取与补全</span>
                   )}
                 </button>
               </div>
@@ -492,27 +492,27 @@ export const AIImportModal: React.FC<AIImportModalProps> = ({
           <div className="text-[11px] text-zinc-400">
             已勾选 {parsedItems.filter((i) => i.selected).length} 款产品
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs text-zinc-400 hover:text-white"
+              className="h-8 px-3 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-xs font-medium text-zinc-300 hover:text-white"
             >
               取消
             </button>
             <button
               disabled={parsedItems.length === 0}
               onClick={() => handleImport(false)}
-              className="px-4 py-2 rounded-xl glass-panel border border-white/10 text-xs font-semibold text-zinc-200 hover:text-white hover:bg-white/10 disabled:opacity-40"
+              className="h-8 px-3 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-xs font-medium text-zinc-200 hover:text-white disabled:opacity-40"
             >
-              仅导入设备库
+              仅入库
             </button>
             <button
               disabled={parsedItems.length === 0}
               onClick={() => handleImport(true)}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 text-xs font-bold shadow-sm disabled:opacity-40"
+              className="h-8 px-3.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-zinc-100 hover:text-white text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-40"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>导入设备库并加入 BOM</span>
+              <span>入库并加清单</span>
             </button>
           </div>
         </div>

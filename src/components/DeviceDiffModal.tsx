@@ -1,12 +1,14 @@
 import React from 'react';
 import { X, GitCompare, ExternalLink, Plus } from 'lucide-react';
 import { useBOMStore, getMergedCatalog } from '../store/useBOMStore';
-import { useI18n } from '../i18n';
 
 interface DeviceDiffModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const BTN_UNIFIED =
+  'h-8 px-3 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-200 hover:text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap';
 
 export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
   isOpen,
@@ -21,7 +23,6 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
     deletedDeviceIds,
     brandRenames,
   } = useBOMStore();
-  const { t, lang } = useI18n();
 
   if (!isOpen || diffDeviceIds.length === 0) return null;
 
@@ -30,245 +31,170 @@ export const DeviceDiffModal: React.FC<DeviceDiffModalProps> = ({
     diffDeviceIds.includes(d.id)
   );
 
-  // Find max capacity and forwarding rate for highlighting
-  const maxCapacity = Math.max(...comparedDevices.map((d) => d.specs.switching_capacity_gbps));
-  const maxForwarding = Math.max(...comparedDevices.map((d) => d.specs.forwarding_rate_mpps));
-
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4 sm:p-6">
-      {/* Backdrop */}
       <div
         onClick={onClose}
         className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
       />
 
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-6xl max-h-[90vh] glass-panel-elevated rounded-3xl flex flex-col z-10 shadow-2xl overflow-hidden border border-white/15 animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-6xl max-h-[90vh] glass-panel-elevated rounded-2xl flex flex-col z-10 shadow-2xl overflow-hidden border border-white/15">
         {/* Top Header */}
-        <div className="p-5 border-b border-white/10 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <GitCompare className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                {t('diff.title')}
-                <span className="text-xs font-mono font-normal text-slate-400 bg-white/5 px-2 py-0.5 rounded-full">
-                  {comparedDevices.length} {lang === 'zh' ? '款机型' : 'Selected'}
-                </span>
-              </h2>
-              <p className="text-[11px] text-slate-400">
-                {t('diff.subtitle')}
-              </p>
-            </div>
+        <div className="px-5 py-3 bg-zinc-900/80 border-b border-white/10 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <GitCompare className="w-4 h-4 text-zinc-300" />
+            <h2 className="text-sm font-bold text-zinc-100">
+              参数对比 ({comparedDevices.length})
+            </h2>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={clearDiff}
-              className="px-3 py-1.5 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              {t('diff.clearAll')}
+            <button onClick={clearDiff} className={BTN_UNIFIED}>
+              清空
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="h-8 w-8 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Comparison Matrix (Scrollable horizontally) */}
-        <div className="flex-1 overflow-x-auto overflow-y-auto p-6">
+        {/* Comparison Matrix */}
+        <div className="flex-1 overflow-x-auto overflow-y-auto p-5">
           <table className="w-full text-xs text-left border-collapse">
             <thead>
               <tr>
-                <th className="p-3 w-40 text-slate-400 font-mono uppercase bg-white/5 rounded-l-xl">
-                  {lang === 'zh' ? '比选参数项' : 'Specification'}
+                <th className="p-3 w-36 text-zinc-400 font-medium bg-white/[0.03] border-b border-white/10">
+                  参数项
                 </th>
                 {comparedDevices.map((d) => (
                   <th
                     key={d.id}
-                    className="p-4 min-w-[220px] bg-slate-900/60 border-l border-white/10 first:border-0"
+                    className="p-3.5 min-w-[210px] bg-white/[0.02] border-l border-b border-white/10"
                   >
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="font-semibold text-sky-400 font-mono text-[11px]">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="font-mono text-[11px] text-zinc-400">
                         {d.brand}
                       </span>
                       <button
                         onClick={() => toggleDiffDevice(d.id)}
-                        className="text-slate-500 hover:text-rose-400 p-0.5 transition-colors"
-                        title={lang === 'zh' ? '从比选中移除' : 'Remove from diff'}
+                        className="text-zinc-500 hover:text-zinc-200 p-0.5 transition-colors"
+                        title="移除"
                       >
                         ✕
                       </button>
                     </div>
-                    <div className="text-sm font-bold text-white tracking-tight">
+                    <div className="text-sm font-bold text-zinc-100 tracking-tight">
                       {d.model}
                     </div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                      P/N: {d.part_number}
+                    <div className="text-[11px] text-zinc-500 font-mono mt-0.5">
+                      {d.part_number}
                     </div>
 
                     <button
-                      onClick={() => addItem(d, lang === 'zh' ? '接入层' : 'Access Layer')}
-                      className="w-full mt-3 flex items-center justify-center gap-1 py-1.5 px-3 rounded-lg bg-sky-500/20 hover:bg-sky-500 text-sky-300 hover:text-white font-semibold transition-all text-xs"
+                      onClick={() => addItem(d, '接入层')}
+                      className="w-full mt-3 h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-200 hover:text-white text-xs font-medium inline-flex items-center justify-center gap-1 transition-colors"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>{t('diff.addToBOM')}</span>
+                      <Plus className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>清单</span>
                     </button>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 font-sans">
-              {/* Form Factor */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">
-                  {lang === 'zh' ? '机箱规格 (U)' : 'Form Factor (U)'}
-                </td>
+                <td className="p-3 text-zinc-400 font-medium">形态</td>
                 {comparedDevices.map((d) => (
-                  <td key={d.id} className="p-3 text-slate-200 border-l border-white/5 font-mono">
+                  <td key={d.id} className="p-3 text-zinc-200 border-l border-white/5 font-mono">
                     {d.specs.form_factor}
                   </td>
                 ))}
               </tr>
 
-              {/* Layer */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">
-                  {t('diff.layer')}
-                </td>
+                <td className="p-3 text-zinc-400 font-medium">层级</td>
                 {comparedDevices.map((d) => (
-                  <td key={d.id} className="p-3 text-slate-200 border-l border-white/5">
+                  <td key={d.id} className="p-3 text-zinc-200 border-l border-white/5">
                     {d.specs.layer}
                   </td>
                 ))}
               </tr>
 
-              {/* Ports Summary */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">
-                  {t('diff.ports')}
-                </td>
+                <td className="p-3 text-zinc-400 font-medium">端口规格</td>
                 {comparedDevices.map((d) => (
-                  <td key={d.id} className="p-3 text-slate-200 border-l border-white/5 font-medium leading-relaxed">
+                  <td key={d.id} className="p-3 text-zinc-200 border-l border-white/5 leading-relaxed">
                     {d.specs.ports.summary}
                   </td>
                 ))}
               </tr>
 
-              {/* Switching Capacity */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">
-                  {t('diff.switching')} (Gbps)
-                </td>
-                {comparedDevices.map((d) => {
-                  const isBest = d.specs.switching_capacity_gbps === maxCapacity;
-                  return (
-                    <td key={d.id} className="p-3 border-l border-white/5 font-mono">
-                      <span
-                        className={`px-2 py-0.5 rounded ${
-                          isBest
-                            ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30'
-                            : 'text-slate-300'
-                        }`}
-                      >
-                        {d.specs.switching_capacity_gbps} Gbps
-                      </span>
-                    </td>
-                  );
-                })}
-              </tr>
-
-              {/* Forwarding Rate */}
-              <tr>
-                <td className="p-3 text-slate-400 font-medium">
-                  {t('diff.forwarding')} (Mpps)
-                </td>
-                {comparedDevices.map((d) => {
-                  const isBest = d.specs.forwarding_rate_mpps === maxForwarding;
-                  return (
-                    <td key={d.id} className="p-3 border-l border-white/5 font-mono">
-                      <span
-                        className={`px-2 py-0.5 rounded ${
-                          isBest
-                            ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30'
-                            : 'text-slate-300'
-                        }`}
-                      >
-                        {d.specs.forwarding_rate_mpps} Mpps
-                      </span>
-                    </td>
-                  );
-                })}
-              </tr>
-
-              {/* PoE Budget */}
-              <tr>
-                <td className="p-3 text-slate-400 font-medium">
-                  {t('diff.poe')}
-                </td>
+                <td className="p-3 text-zinc-400 font-medium">交换容量</td>
                 {comparedDevices.map((d) => (
-                  <td key={d.id} className="p-3 border-l border-white/5">
-                    {d.specs.poe.supported ? (
-                      <span className="text-amber-300 font-mono font-semibold">
-                        {d.specs.poe.budget_watts}W ({d.specs.poe.standard})
-                      </span>
-                    ) : (
-                      <span className="text-slate-500">{lang === 'zh' ? '不支持' : 'Not supported'}</span>
-                    )}
+                  <td key={d.id} className="p-3 text-zinc-200 border-l border-white/5 font-mono">
+                    {d.specs.switching_capacity_gbps} Gbps
                   </td>
                 ))}
               </tr>
 
-              {/* Power Supply */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">
-                  {t('diff.power')}
-                </td>
+                <td className="p-3 text-zinc-400 font-medium">包转发率</td>
                 {comparedDevices.map((d) => (
-                  <td key={d.id} className="p-3 text-slate-300 border-l border-white/5">
+                  <td key={d.id} className="p-3 text-zinc-200 border-l border-white/5 font-mono">
+                    {d.specs.forwarding_rate_mpps} Mpps
+                  </td>
+                ))}
+              </tr>
+
+              <tr>
+                <td className="p-3 text-zinc-400 font-medium">PoE</td>
+                {comparedDevices.map((d) => (
+                  <td key={d.id} className="p-3 border-l border-white/5 text-zinc-200">
+                    {d.specs.poe.supported
+                      ? `${d.specs.poe.budget_watts}W (${d.specs.poe.standard})`
+                      : '无'}
+                  </td>
+                ))}
+              </tr>
+
+              <tr>
+                <td className="p-3 text-zinc-400 font-medium">电源</td>
+                {comparedDevices.map((d) => (
+                  <td key={d.id} className="p-3 text-zinc-300 border-l border-white/5">
                     {d.specs.power_supply.type === 'modular'
-                      ? (lang === 'zh'
-                          ? `插槽 x${d.specs.power_supply.slots} (标配 ${d.specs.power_supply.default_included})`
-                          : `Slots x${d.specs.power_supply.slots} (Default ${d.specs.power_supply.default_included})`)
-                      : (lang === 'zh' ? '固定电源' : 'Fixed Internal')}
-                    {d.specs.power_supply.redundancy_supported && (lang === 'zh' ? ' [支持1+1冗余]' : ' [1+1 Redundant]')}
+                      ? `插槽 x${d.specs.power_supply.slots} (含${d.specs.power_supply.default_included})`
+                      : '固定电源'}
                   </td>
                 ))}
               </tr>
 
-              {/* GPL Price */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">
-                  {t('diff.listPrice')}
-                </td>
+                <td className="p-3 text-zinc-400 font-medium">指导价</td>
                 {comparedDevices.map((d) => (
-                  <td key={d.id} className="p-3 border-l border-white/5 font-mono font-bold text-white text-sm">
+                  <td key={d.id} className="p-3 border-l border-white/5 font-mono font-bold text-zinc-100">
                     {d.pricing.list_price_gpl
                       ? `¥${d.pricing.list_price_gpl.toLocaleString()}`
-                      : (lang === 'zh' ? '待询价' : 'Inquire')}
+                      : '待核价'}
                   </td>
                 ))}
               </tr>
 
-              {/* Official Spec URL */}
               <tr>
-                <td className="p-3 text-slate-400 font-medium">
-                  {lang === 'zh' ? '官网数据凭据' : 'Official Spec'}
-                </td>
+                <td className="p-3 text-zinc-400 font-medium">官网</td>
                 {comparedDevices.map((d) => (
                   <td key={d.id} className="p-3 border-l border-white/5">
                     <a
                       href={d.metadata.official_spec_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 text-[11px]"
+                      className="inline-flex items-center gap-1 text-zinc-300 hover:text-white text-xs"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>{lang === 'zh' ? '查看官方白皮书' : 'Datasheet'}</span>
+                      <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>规格书</span>
                     </a>
                   </td>
                 ))}

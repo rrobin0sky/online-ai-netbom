@@ -481,17 +481,17 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2.5">
+              <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 rounded-xl text-zinc-400 hover:text-white"
+                  className="h-8 px-3 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-xs font-medium text-zinc-300 hover:text-white"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 font-bold text-xs shadow-sm"
+                  className="h-8 px-4 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-zinc-100 hover:text-white font-medium text-xs"
                 >
                   保存
                 </button>
@@ -505,20 +505,20 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
                 onChange={(e) => setJsonInput(e.target.value)}
                 className="w-full glass-input rounded-xl p-3 font-mono text-xs text-zinc-200"
               />
-              <div className="flex justify-end gap-2.5">
+              <div className="flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 rounded-xl text-zinc-400 hover:text-white text-xs"
+                  className="h-8 px-3 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-xs font-medium text-zinc-300 hover:text-white"
                 >
                   取消
                 </button>
                 <button
                   type="button"
                   onClick={handleJsonSubmit}
-                  className="px-5 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 font-bold text-xs"
+                  className="h-8 px-4 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-zinc-100 hover:text-white font-medium text-xs"
                 >
-                  解析保存
+                  保存
                 </button>
               </div>
             </div>

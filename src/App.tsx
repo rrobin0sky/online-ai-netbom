@@ -133,10 +133,10 @@ export const App: React.FC = () => {
         <div className="fixed bottom-5 right-5 z-30 lg:hidden">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-zinc-100 text-zinc-900 font-bold text-xs shadow-2xl"
+            className="h-9 px-4 rounded-full bg-zinc-900 border border-white/20 text-zinc-100 font-medium text-xs shadow-2xl inline-flex items-center gap-2"
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>BOM ({items.reduce((s, i) => s + i.quantity, 0)})</span>
+            <FileSpreadsheet className="w-3.5 h-3.5 text-zinc-400" />
+            <span>清单 ({items.reduce((s, i) => s + i.quantity, 0)})</span>
           </button>
         </div>
       )}

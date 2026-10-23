@@ -36,14 +36,14 @@ export const FilterSidebar: React.FC = () => {
   const allDevices = getMergedCatalog(customDevices, deletedDeviceIds, brandRenames);
 
   const layers = [
-    { id: 'all', label: '全部层级' },
-    { id: 'L2+', label: '接入 (L2+)' },
-    { id: 'L3', label: '核心汇聚 (L3)' },
-    { id: 'DataCenter', label: '数据中心 (DC)' },
+    { id: 'all', label: '全部' },
+    { id: 'L2+', label: '接入' },
+    { id: 'L3', label: '核心/汇聚' },
+    { id: 'DataCenter', label: '数据中心' },
   ];
 
   const speeds = [
-    { id: 'all', label: '全部速率' },
+    { id: 'all', label: '全部' },
     { id: '1G', label: '1GE' },
     { id: '10G', label: '10GE' },
     { id: '25G', label: '25GE' },
@@ -51,10 +51,10 @@ export const FilterSidebar: React.FC = () => {
   ];
 
   const pillClass = (active: boolean) =>
-    `px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+    `h-7 px-2.5 rounded-md text-xs font-medium inline-flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap border ${
       active
-        ? 'bg-zinc-100 text-zinc-900 font-semibold shadow-xs'
-        : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+        ? 'bg-white/[0.12] border-white/25 text-white font-semibold'
+        : 'bg-white/[0.03] border-white/[0.06] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.07]'
     }`;
 
   const handleAddBrand = (e: React.FormEvent) => {
@@ -81,27 +81,23 @@ export const FilterSidebar: React.FC = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="搜索型号、P/N..."
-          className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
+          className="w-full h-8 glass-input rounded-lg px-3 text-xs"
         />
       </div>
 
       {/* Horizontal Top Filter Bar */}
       <div className="glass-panel rounded-xl px-3.5 py-2.5 space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-y-2.5 gap-x-4">
+        <div className="flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
           <div className="flex flex-wrap items-center gap-y-2 gap-x-3">
             {/* Brand Pills + Manage Toggle */}
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-[11px] text-zinc-500 mr-1 font-medium">品牌:</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-zinc-500 mr-0.5 font-medium">品牌</span>
               <button
                 onClick={() => setSelectedBrand('all')}
                 className={pillClass(selectedBrand === 'all')}
               >
-                <span>全部品牌</span>
-                <span
-                  className={`ml-1 text-[10px] font-mono ${
-                    selectedBrand === 'all' ? 'text-zinc-600' : 'text-zinc-500'
-                  }`}
-                >
+                <span>全部</span>
+                <span className="text-[10px] font-mono text-zinc-500">
                   {allDevices.length}
                 </span>
               </button>
@@ -112,7 +108,7 @@ export const FilterSidebar: React.FC = () => {
                   return (
                     <div
                       key={b}
-                      className="inline-flex items-center gap-1 bg-zinc-900 border border-white/20 rounded-lg px-2 py-0.5"
+                      className="h-7 inline-flex items-center gap-1 bg-zinc-900 border border-white/20 rounded-md px-2"
                     >
                       <input
                         type="text"
@@ -129,7 +125,7 @@ export const FilterSidebar: React.FC = () => {
                         type="button"
                         onClick={() => handleConfirmRename(b)}
                         className="text-zinc-300 hover:text-white"
-                        title="保存品牌名称"
+                        title="保存"
                       >
                         <Check className="w-3 h-3" />
                       </button>
@@ -145,23 +141,19 @@ export const FilterSidebar: React.FC = () => {
                 }
 
                 return (
-                  <div key={b} className="inline-flex items-center group relative">
+                  <div key={b} className="inline-flex items-center">
                     <button
                       onClick={() => setSelectedBrand(b)}
                       className={pillClass(selectedBrand === b)}
                     >
                       <span>{b}</span>
-                      <span
-                        className={`ml-1 text-[10px] font-mono ${
-                          selectedBrand === b ? 'text-zinc-600' : 'text-zinc-500'
-                        }`}
-                      >
+                      <span className="text-[10px] font-mono text-zinc-500">
                         {count}
                       </span>
                     </button>
 
                     {isManagingBrands && (
-                      <div className="inline-flex items-center gap-0.5 ml-0.5 mr-1 bg-white/5 border border-white/10 rounded px-1 py-0.5">
+                      <div className="h-7 inline-flex items-center gap-0.5 ml-1 bg-white/[0.04] border border-white/10 rounded-md px-1">
                         <button
                           type="button"
                           onClick={() => {
@@ -169,21 +161,21 @@ export const FilterSidebar: React.FC = () => {
                             setEditingBrandValue(b);
                           }}
                           className="text-zinc-400 hover:text-white p-0.5"
-                          title="修改品牌名称"
+                          title="改名"
                         >
-                          <Edit3 className="w-2.5 h-2.5" />
+                          <Edit3 className="w-3 h-3" />
                         </button>
                         <button
                           type="button"
                           onClick={() => {
-                            if (confirm(`确定移除品牌「${b}」筛选项吗？`)) {
+                            if (confirm(`确定移除品牌「${b}」吗？`)) {
                               deleteBrand(b);
                             }
                           }}
                           className="text-zinc-500 hover:text-zinc-200 p-0.5"
-                          title="删除品牌"
+                          title="删除"
                         >
-                          <X className="w-2.5 h-2.5" />
+                          <X className="w-3 h-3" />
                         </button>
                       </div>
                     )}
@@ -195,14 +187,10 @@ export const FilterSidebar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsManagingBrands(!isManagingBrands)}
-                className={`p-1 rounded-lg border text-[11px] flex items-center gap-1 transition-colors ${
-                  isManagingBrands
-                    ? 'bg-zinc-100 text-zinc-900 border-zinc-100 font-semibold px-2'
-                    : 'border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-white/5 px-1.5'
-                }`}
-                title="增删改品牌"
+                className={pillClass(isManagingBrands)}
+                title="管理品牌"
               >
-                <Settings2 className="w-3 h-3" />
+                <Settings2 className="w-3.5 h-3.5" />
                 {isManagingBrands && <span>完成</span>}
               </button>
             </div>
@@ -210,8 +198,8 @@ export const FilterSidebar: React.FC = () => {
             <div className="hidden xl:block h-4 w-[1px] bg-white/10" />
 
             {/* Layer Pills */}
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-[11px] text-zinc-500 mr-1 font-medium">层级:</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-zinc-500 mr-0.5 font-medium">层级</span>
               {layers.map((l) => (
                 <button
                   key={l.id}
@@ -226,8 +214,8 @@ export const FilterSidebar: React.FC = () => {
             <div className="hidden xl:block h-4 w-[1px] bg-white/10" />
 
             {/* Speed Pills */}
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-[11px] text-zinc-500 mr-1 font-medium">速率:</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-zinc-500 mr-0.5 font-medium">速率</span>
               {speeds.map((s) => (
                 <button
                   key={s.id}
@@ -247,9 +235,9 @@ export const FilterSidebar: React.FC = () => {
                 type="checkbox"
                 checked={poeOnly}
                 onChange={(e) => setPoeOnly(e.target.checked)}
-                className="rounded border-zinc-700 bg-zinc-900 w-3.5 h-3.5 accent-zinc-200"
+                className="rounded border-zinc-700 bg-zinc-900 w-3.5 h-3.5 accent-zinc-400"
               />
-              <span>仅 PoE</span>
+              <span>PoE</span>
             </label>
 
             <label className="flex items-center gap-1.5 cursor-pointer select-none text-zinc-400 hover:text-zinc-200">
@@ -257,7 +245,7 @@ export const FilterSidebar: React.FC = () => {
                 type="checkbox"
                 checked={hideEol}
                 onChange={(e) => setHideEol(e.target.checked)}
-                className="rounded border-zinc-700 bg-zinc-900 w-3.5 h-3.5 accent-zinc-200"
+                className="rounded border-zinc-700 bg-zinc-900 w-3.5 h-3.5 accent-zinc-400"
               />
               <span>隐藏停产</span>
             </label>
@@ -266,50 +254,43 @@ export const FilterSidebar: React.FC = () => {
               <button
                 type="button"
                 onClick={restoreDefaultDevices}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-zinc-400 hover:text-zinc-100 hover:bg-white/5 border border-white/10"
+                className={pillClass(false)}
                 title="恢复已删除的默认设备"
               >
                 <RotateCcw className="w-3 h-3" />
-                <span>恢复默认设备 ({deletedDeviceIds.length})</span>
+                <span>恢复默认</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Inline Brand Management Strip (When active) */}
+        {/* Inline Brand Management Strip */}
         {isManagingBrands && (
-          <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="pt-2.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
             <form onSubmit={handleAddBrand} className="flex items-center gap-2">
-              <span className="text-[11px] text-zinc-400">新增品牌:</span>
               <input
                 type="text"
                 value={newBrandInput}
                 onChange={(e) => setNewBrandInput(e.target.value)}
-                placeholder="输入品牌名称 (如 ZTE、Juniper、深信服)..."
-                className="glass-input rounded-lg px-2.5 py-1 text-xs text-zinc-100 w-56"
+                placeholder="输入新品牌名称..."
+                className="h-7 glass-input rounded-md px-2.5 text-xs text-zinc-100 w-44"
               />
-              <button
-                type="submit"
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-900 font-semibold hover:bg-white"
-              >
+              <button type="submit" className={pillClass(false)}>
                 <Plus className="w-3 h-3" />
-                <span>添加</span>
+                <span>新增品牌</span>
               </button>
             </form>
 
-            <div className="flex items-center gap-3 text-[11px] text-zinc-500">
-              <span>提示：点击品牌右侧图标可直接改名或删除</span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm('恢复默认品牌列表？')) resetBrands();
-                }}
-                className="flex items-center gap-1 text-zinc-400 hover:text-zinc-100 px-2 py-0.5 rounded bg-white/5 border border-white/10"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>重置品牌</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('恢复默认品牌列表？')) resetBrands();
+              }}
+              className={pillClass(false)}
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>重置品牌</span>
+            </button>
           </div>
         )}
       </div>
