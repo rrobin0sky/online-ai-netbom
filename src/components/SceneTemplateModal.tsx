@@ -35,6 +35,7 @@ export const SceneTemplateModal: React.FC<SceneTemplateModalProps> = ({
     items,
     customDevices,
     deletedDeviceIds,
+    purgedDeviceIds,
     brandRenames,
   } = useBOMStore();
 
@@ -47,7 +48,12 @@ export const SceneTemplateModal: React.FC<SceneTemplateModalProps> = ({
   if (!isOpen) return null;
 
   const activeTemplates = templates?.length ? templates : SCENE_TEMPLATES;
-  const allDevices = getMergedCatalog(customDevices, deletedDeviceIds, brandRenames);
+  const allDevices = getMergedCatalog(
+    customDevices,
+    deletedDeviceIds,
+    brandRenames,
+    purgedDeviceIds
+  );
 
   const handleApply = (template: ProjectTemplate) => {
     loadSceneTemplate(template.id);

@@ -17,6 +17,7 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
     customDevices,
     deletedDeviceIds,
     deletedCustomDevices,
+    purgedDeviceIds,
     brandRenames,
     searchQuery,
     selectedBrand,
@@ -29,6 +30,7 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
     trashView,
     setTrashView,
     restoreDefaultDevices,
+    emptyTrash,
     globalDiscountRate,
   } = useBOMStore();
 
@@ -37,15 +39,17 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
       return getDeletedDevicesCatalog(
         deletedDeviceIds,
         deletedCustomDevices,
-        brandRenames
+        brandRenames,
+        purgedDeviceIds
       );
     }
-    return getMergedCatalog(customDevices, deletedDeviceIds, brandRenames);
+    return getMergedCatalog(customDevices, deletedDeviceIds, brandRenames, purgedDeviceIds);
   }, [
     trashView,
     customDevices,
     deletedDeviceIds,
     deletedCustomDevices,
+    purgedDeviceIds,
     brandRenames,
   ]);
 
@@ -162,19 +166,35 @@ export const DeviceCatalog: React.FC<DeviceCatalogProps> = ({ onEditDevice }) =>
           </div>
           <div className="flex items-center gap-2">
             {filteredDevices.length > 0 && (
-              <button
-                type="button"
-                onClick={restoreDefaultDevices}
-                className="h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-200 hover:text-white inline-flex items-center gap-1"
-              >
-                <RotateCcw className="w-3 h-3 text-zinc-400" />
-                <span>全部还原</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={restoreDefaultDevices}
+                  className="h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-200 hover:text-white inline-flex items-center gap-1 transition-colors cursor-pointer"
+                  title="将回收站中的所有设备恢复到设备库"
+                >
+                  <RotateCcw className="w-3 h-3 text-zinc-400" />
+                  <span>全部还原</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('确定清空回收站吗？清空后将从回收站永久移除。')) {
+                      emptyTrash();
+                    }
+                  }}
+                  className="h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-300 hover:text-rose-300 inline-flex items-center gap-1 transition-colors cursor-pointer"
+                  title="永久清空回收站中的所有内容"
+                >
+                  <Trash2 className="w-3 h-3 text-zinc-400" />
+                  <span>清空回收站</span>
+                </button>
+              </>
             )}
             <button
               type="button"
               onClick={() => setTrashView(false)}
-              className="h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-300 hover:text-white"
+              className="h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
             >
               返回列表
             </button>

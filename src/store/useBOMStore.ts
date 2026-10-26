@@ -33,6 +33,7 @@ interface BOMState {
   customDevices: DeviceItem[];
   deletedDeviceIds: string[];
   deletedCustomDevices: DeviceItem[];
+  purgedDeviceIds: string[];
   customServices: EngineeringItem[];
   deletedServiceIds: string[];
   templates: ProjectTemplate[];
@@ -111,6 +112,8 @@ interface BOMState {
   addCustomDevice: (device: DeviceItem) => void;
   deleteDevice: (deviceId: string) => void;
   restoreDevice: (deviceId: string) => void;
+  permanentlyDeleteDevice: (deviceId: string) => void;
+  emptyTrash: () => void;
   restoreDefaultDevices: () => void;
 
   addBrand: (brandName: string) => void;
@@ -164,6 +167,7 @@ export const useBOMStore = create<BOMState>()(
       customDevices: [],
       deletedDeviceIds: [],
       deletedCustomDevices: [],
+      purgedDeviceIds: [],
       customServices: [],
       deletedServiceIds: [],
       templates: SCENE_TEMPLATES,
@@ -593,6 +597,38 @@ export const useBOMStore = create<BOMState>()(
         });
       },
 
+      permanentlyDeleteDevice: (deviceId) => {
+        set((state) => {
+          const nextDeletedIds = state.deletedDeviceIds.filter((id) => id !== deviceId);
+          const nextPurged = (state.purgedDeviceIds || []).includes(deviceId)
+            ? state.purgedDeviceIds
+            : [...(state.purgedDeviceIds || []), deviceId];
+          return {
+            deletedDeviceIds: nextDeletedIds,
+            purgedDeviceIds: nextPurged,
+            deletedCustomDevices: (state.deletedCustomDevices || []).filter(
+              (d) => d.id !== deviceId
+            ),
+            customDevices: state.customDevices.filter((d) => d.id !== deviceId),
+            trashView: nextDeletedIds.length === 0 ? false : state.trashView,
+          };
+        });
+      },
+
+      emptyTrash: () => {
+        set((state) => {
+          const currentPurged = state.purgedDeviceIds || [];
+          const currentDeleted = state.deletedDeviceIds || [];
+          const mergedPurged = Array.from(new Set([...currentPurged, ...currentDeleted]));
+          return {
+            deletedDeviceIds: [],
+            purgedDeviceIds: mergedPurged,
+            deletedCustomDevices: [],
+            trashView: false,
+          };
+        });
+      },
+
       restoreDefaultDevices: () => {
         set((state) => ({
           deletedDeviceIds: [],
@@ -847,6 +883,7 @@ export const useBOMStore = create<BOMState>()(
             customDevices: state.customDevices,
             deletedDeviceIds: state.deletedDeviceIds,
             deletedCustomDevices: state.deletedCustomDevices,
+            purgedDeviceIds: state.purgedDeviceIds,
             customServices: state.customServices,
             deletedServiceIds: state.deletedServiceIds,
             templates: state.templates,
@@ -913,6 +950,7 @@ export const useBOMStore = create<BOMState>()(
             ...(p.customDevices ? { customDevices: p.customDevices } : {}),
             ...(p.deletedDeviceIds ? { deletedDeviceIds: p.deletedDeviceIds } : {}),
             ...(p.deletedCustomDevices ? { deletedCustomDevices: p.deletedCustomDevices } : {}),
+            ...(p.purgedDeviceIds ? { purgedDeviceIds: p.purgedDeviceIds } : {}),
             ...(p.customServices ? { customServices: p.customServices } : {}),
             ...(p.deletedServiceIds ? { deletedServiceIds: p.deletedServiceIds } : {}),
             ...(p.templates ? { templates: p.templates } : {}),
@@ -943,6 +981,7 @@ export const useBOMStore = create<BOMState>()(
         customDevices: state.customDevices,
         deletedDeviceIds: state.deletedDeviceIds,
         deletedCustomDevices: state.deletedCustomDevices,
+        purgedDeviceIds: state.purgedDeviceIds,
         customServices: state.customServices,
         deletedServiceIds: state.deletedServiceIds,
         templates: state.templates,
@@ -957,14 +996,15 @@ export const useBOMStore = create<BOMState>()(
 );
 
 /**
- * Merge custom/edited devices with SEED_DEVICES, excluding deletedDeviceIds and applying brandRenames
+ * Merge custom/edited devices with SEED_DEVICES, excluding deletedDeviceIds and purgedDeviceIds, and applying brandRenames
  */
 export function getMergedCatalog(
   customDevices: DeviceItem[],
   deletedDeviceIds: string[] = [],
-  brandRenames: Record<string, string> = {}
+  brandRenames: Record<string, string> = {},
+  purgedDeviceIds: string[] = []
 ): DeviceItem[] {
-  const deletedSet = new Set(deletedDeviceIds);
+  const hiddenSet = new Set([...deletedDeviceIds, ...purgedDeviceIds]);
   const customMap = new Map(customDevices.map((d) => [d.id, d]));
   const overriddenSeed = SEED_DEVICES.map((s) => {
     const dev = customMap.get(s.id) || s;
@@ -973,18 +1013,22 @@ export function getMergedCatalog(
   });
   const seedIds = new Set(SEED_DEVICES.map((s) => s.id));
   const brandNewCustom = customDevices.filter((c) => !seedIds.has(c.id));
-  return [...brandNewCustom, ...overriddenSeed].filter((d) => !deletedSet.has(d.id));
+  return [...brandNewCustom, ...overriddenSeed].filter((d) => !hiddenSet.has(d.id));
 }
 
 /**
- * Get deleted devices in the Trash / Recycle Bin
+ * Get deleted devices in the Trash / Recycle Bin, excluding permanently purged ones
  */
 export function getDeletedDevicesCatalog(
   deletedDeviceIds: string[] = [],
   deletedCustomDevices: DeviceItem[] = [],
-  brandRenames: Record<string, string> = {}
+  brandRenames: Record<string, string> = {},
+  purgedDeviceIds: string[] = []
 ): DeviceItem[] {
-  const deletedSet = new Set(deletedDeviceIds);
+  const purgedSet = new Set(purgedDeviceIds);
+  const activeDeletedIds = deletedDeviceIds.filter((id) => !purgedSet.has(id));
+  const deletedSet = new Set(activeDeletedIds);
+
   const deletedSeeds = SEED_DEVICES.filter((s) => deletedSet.has(s.id)).map((dev) => {
     const renamedBrand = brandRenames[dev.brand] || dev.brand;
     return renamedBrand !== dev.brand ? { ...dev, brand: renamedBrand } : dev;

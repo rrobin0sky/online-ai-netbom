@@ -36,6 +36,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
     globalDiscountRate,
     deleteDevice,
     restoreDevice,
+    permanentlyDeleteDevice,
   } = useBOMStore();
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -82,6 +83,13 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
   const handleRestore = (e: React.MouseEvent) => {
     e.stopPropagation();
     restoreDevice(device.id);
+  };
+
+  const handlePermanentDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm(`确定彻底删除设备「${device.model}」吗？删除后将无法还原。`)) {
+      permanentlyDeleteDevice(device.id);
+    }
   };
 
   return (
@@ -159,14 +167,26 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         </button>
 
         {isTrash ? (
-          <button
-            type="button"
-            onClick={handleRestore}
-            className={CARD_BTN}
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
-            <span>还原</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleRestore}
+              className={CARD_BTN}
+              title="还原到设备库"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
+              <span>还原</span>
+            </button>
+            <button
+              type="button"
+              onClick={handlePermanentDelete}
+              className={`${CARD_BTN} hover:text-rose-300`}
+              title="从回收站彻底删除"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-zinc-400" />
+              <span>彻底删除</span>
+            </button>
+          </div>
         ) : (
           <div className="flex items-center gap-1.5">
             {/* Quantity Selector */}

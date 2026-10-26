@@ -40,6 +40,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
     setSearchQuery,
     customDevices,
     deletedDeviceIds,
+    purgedDeviceIds,
     customServices,
     deletedServiceIds,
     restoreDefaultServices,
@@ -57,8 +58,16 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
   const [editingBrandValue, setEditingBrandValue] = useState('');
 
   const activeBrands = brands?.length ? brands : DEFAULT_BRANDS;
-  const allDevices = getMergedCatalog(customDevices, deletedDeviceIds, brandRenames);
+  const allDevices = getMergedCatalog(
+    customDevices,
+    deletedDeviceIds,
+    brandRenames,
+    purgedDeviceIds
+  );
   const allServices = getMergedServiceCatalog(customServices, deletedServiceIds);
+  const activeDeletedCount = deletedDeviceIds.filter(
+    (id) => !(purgedDeviceIds || []).includes(id)
+  ).length;
 
   const layers = [
     { id: 'all', label: '全部' },
@@ -356,9 +365,9 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
               >
                 <Trash2 className="w-3 h-3 text-zinc-400" />
                 <span>回收站</span>
-                {deletedDeviceIds.length > 0 && (
+                {activeDeletedCount > 0 && (
                   <span className="text-[10px] font-mono text-zinc-500">
-                    {deletedDeviceIds.length}
+                    {activeDeletedCount}
                   </span>
                 )}
               </button>
