@@ -471,6 +471,31 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
               </div>
 
               <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-zinc-400 font-medium block">
+                    关键技术规格描述 (用于卡片详情与报价单)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const auto = `${portsSummary || '标准接口'} | 交换容量 ${switchingGbps}Gbps | 包转发率 ${forwardingMpps}Mpps${isPoe ? ` | PoE ${poeWatts}W` : ''}`;
+                      setDescription(auto);
+                    }}
+                    className="text-[11px] text-zinc-400 hover:text-white cursor-pointer"
+                  >
+                    根据参数生成
+                  </button>
+                </div>
+                <textarea
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="如: 24×10/100/1000Base-T, 4×10GE SFP+ | 交换容量 336Gbps | 包转发率 126Mpps"
+                  className="w-full glass-input rounded-xl px-3 py-2 text-zinc-100 text-xs leading-relaxed"
+                />
+              </div>
+
+              <div>
                 <label className="text-zinc-400 font-medium mb-1 block">官网链接 URL</label>
                 <input
                   type="url"

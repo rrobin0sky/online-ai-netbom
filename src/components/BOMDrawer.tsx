@@ -416,12 +416,19 @@ export const BOMDrawer: React.FC = () => {
                           </td>
                           <td
                             className="py-2 px-2.5 text-zinc-300 text-xs max-w-xs truncate"
-                            title={item.device.specs.ports.summary}
+                            title={
+                              item.device.description ||
+                              `${item.device.specs.ports.summary} | ${item.device.specs.switching_capacity_gbps}G`
+                            }
                           >
-                            {item.device.specs.ports.summary} | {item.device.specs.switching_capacity_gbps}G
-                            {item.device.specs.poe.supported
-                              ? ` | PoE ${item.device.specs.poe.budget_watts}W`
-                              : ''}
+                            {item.device.description || (
+                              <>
+                                {item.device.specs.ports.summary} | {item.device.specs.switching_capacity_gbps}G
+                                {item.device.specs.poe.supported
+                                  ? ` | PoE ${item.device.specs.poe.budget_watts}W`
+                                  : ''}
+                              </>
+                            )}
                           </td>
                           <td className="py-1 px-1 text-center">
                             <input

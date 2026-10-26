@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ExternalLink,
   Plus,
   Minus,
   Check,
+  Copy,
   GitCompare,
   ChevronDown,
   ChevronUp,
@@ -42,8 +43,44 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [addQty, setAddQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
+  const [copiedSpecs, setCopiedSpecs] = useState(false);
 
   const isDiffSelected = diffDeviceIds.includes(device.id);
+
+  const keySpecsText = useMemo(() => {
+    if (device.description?.trim()) {
+      return device.description.trim();
+    }
+    const parts: string[] = [];
+    if (device.specs.ports?.summary) parts.push(device.specs.ports.summary);
+    if (device.specs.switching_capacity_gbps) {
+      parts.push(`交换容量 ${device.specs.switching_capacity_gbps}Gbps`);
+    }
+    if (device.specs.forwarding_rate_mpps) {
+      parts.push(`包转发率 ${device.specs.forwarding_rate_mpps}Mpps`);
+    }
+    if (device.specs.poe?.supported) {
+      parts.push(`PoE+ (${device.specs.poe.budget_watts || 370}W)`);
+    }
+    if (device.specs.power_supply) {
+      const ps = device.specs.power_supply;
+      const psType =
+        ps.type === 'modular'
+          ? `模块化电源(插槽×${ps.slots})`
+          : ps.type === 'fixed'
+          ? '内置固定电源'
+          : '外置电源';
+      parts.push(ps.redundancy_supported ? `${psType} 支持双冗余` : psType);
+    }
+    return parts.join(' | ');
+  }, [device]);
+
+  const handleCopySpecs = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(keySpecsText);
+    setCopiedSpecs(true);
+    setTimeout(() => setCopiedSpecs(false), 2000);
+  };
 
   // Total quantity of this device currently in BOM
   const inBomQuantity = items
@@ -291,11 +328,33 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
             </div>
           </div>
 
-          {device.description && (
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              {device.description}
+          {/* Key Technical Specification Description */}
+          <div className="rounded-lg p-2.5 bg-white/[0.03] border border-white/10 space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] text-zinc-400 font-medium">
+              <span className="text-zinc-300 font-semibold">关键技术规格描述</span>
+              <button
+                type="button"
+                onClick={handleCopySpecs}
+                className="text-[11px] text-zinc-400 hover:text-white inline-flex items-center gap-1 transition-colors cursor-pointer"
+                title="复制关键技术规格描述"
+              >
+                {copiedSpecs ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-400" />
+                    <span className="text-emerald-400">已复制</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    <span>复制</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <p className="text-xs text-zinc-200 leading-relaxed font-sans select-text">
+              {keySpecsText}
             </p>
-          )}
+          </div>
 
           {/* Secondary Utility Actions */}
           <div className="flex items-center justify-between gap-1.5 pt-1">
