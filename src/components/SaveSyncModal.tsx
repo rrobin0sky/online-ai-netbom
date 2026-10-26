@@ -11,6 +11,8 @@ import {
   AlertCircle,
   ShieldCheck,
   Globe,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
 
@@ -45,6 +47,7 @@ export const SaveSyncModal: React.FC = () => {
   const [loadCode, setLoadCode] = useState('');
   const [loadPassword, setLoadPassword] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [copied, setCopied] = useState(false);
   const [msg, setMsg] = useState<{ text: string; isError?: boolean } | null>(null);
 
@@ -342,15 +345,27 @@ export const SaveSyncModal: React.FC = () => {
                 <label className="block text-zinc-400 font-medium mb-1.5">
                   输入管理员发布口令 (Master Password)
                 </label>
-                <div className="flex items-center gap-2">
-                  <KeyRound className="w-4 h-4 text-zinc-500 ml-1" />
+                <div className="relative flex items-center">
+                  <KeyRound className="absolute left-3 w-4 h-4 text-zinc-500 pointer-events-none" />
                   <input
-                    type="password"
+                    type={showAdminPassword ? 'text' : 'password'}
                     value={adminPassword}
                     onChange={(e) => setAdminPassword(e.target.value)}
-                    placeholder="输入管理员口令 (bin0sky.tech)"
-                    className="flex-1 h-9 glass-input rounded-lg px-3 text-xs text-zinc-100"
+                    placeholder="请输入管理员发布口令"
+                    className="w-full h-9 glass-input rounded-lg pl-9 pr-9 text-xs text-zinc-100 placeholder:text-zinc-600"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPassword(!showAdminPassword)}
+                    className="absolute right-2.5 h-6 w-6 flex items-center justify-center text-zinc-500 hover:text-zinc-300"
+                    title={showAdminPassword ? '隐藏口令' : '显示口令'}
+                  >
+                    {showAdminPassword ? (
+                      <EyeOff className="w-3.5 h-3.5" />
+                    ) : (
+                      <Eye className="w-3.5 h-3.5" />
+                    )}
+                  </button>
                 </div>
               </div>
 
