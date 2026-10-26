@@ -5,6 +5,7 @@ import {
   Search,
   Upload,
   LayoutTemplate,
+  Cloud,
 } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
 
@@ -27,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
     diffDeviceIds,
     searchQuery,
     setSearchQuery,
+    setSaveModalOpen,
   } = useBOMStore();
 
   const totalItemCount =
@@ -117,6 +119,15 @@ export const Header: React.FC<HeaderProps> = ({
               <span>对比 ({diffDeviceIds.length})</span>
             </button>
           )}
+
+          <button
+            onClick={() => setSaveModalOpen(true)}
+            className={BTN_BASE}
+            title="云端保存与多端同步"
+          >
+            <Cloud className="w-3.5 h-3.5 text-zinc-400" />
+            <span>保存</span>
+          </button>
 
           <button onClick={toggleDrawer} className={BTN_BASE}>
             <FileSpreadsheet className="w-3.5 h-3.5 text-zinc-400" />

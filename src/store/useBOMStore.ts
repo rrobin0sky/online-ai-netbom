@@ -41,6 +41,11 @@ interface BOMState {
 
   // UI state
   isDrawerOpen: boolean;
+  isSaveModalOpen: boolean;
+  isSyncing: boolean;
+  syncCode: string;
+  syncPassword: string;
+  lastSyncedAt: number | null;
   diffDeviceIds: string[];
 
   // Search & Filter state
@@ -57,6 +62,12 @@ interface BOMState {
   // Actions
   setWorkspaceTab: (tab: 'devices' | 'services') => void;
   setSelectedServiceCategory: (cat: string) => void;
+
+  setSyncCode: (code: string) => void;
+  setSyncPassword: (pass: string) => void;
+  setSaveModalOpen: (open: boolean) => void;
+  saveToCloud: (code?: string, pass?: string) => Promise<{ success: boolean; message: string }>;
+  loadFromCloud: (code: string, pass?: string) => Promise<{ success: boolean; message: string }>;
 
   setProjectName: (name: string) => void;
   setClientName: (client: string) => void;
@@ -160,6 +171,11 @@ export const useBOMStore = create<BOMState>()(
       brandRenames: {},
 
       isDrawerOpen: false,
+      isSaveModalOpen: false,
+      isSyncing: false,
+      syncCode: 'BOM-8823',
+      syncPassword: '',
+      lastSyncedAt: null,
       diffDeviceIds: [],
 
       searchQuery: '',
@@ -171,6 +187,10 @@ export const useBOMStore = create<BOMState>()(
       recentOnly: false,
       unpricedOnly: false,
       trashView: false,
+
+      setSyncCode: (syncCode) => set({ syncCode }),
+      setSyncPassword: (syncPassword) => set({ syncPassword }),
+      setSaveModalOpen: (isSaveModalOpen) => set({ isSaveModalOpen }),
 
       setWorkspaceTab: (workspaceTab) => set({ workspaceTab, trashView: false }),
       setSelectedServiceCategory: (selectedServiceCategory) => set({ selectedServiceCategory }),
@@ -807,6 +827,105 @@ export const useBOMStore = create<BOMState>()(
           return false;
         }
       },
+
+      saveToCloud: async (targetCode, pass) => {
+        const state = get();
+        const code = (targetCode || state.syncCode || 'BOM-8823').trim().toUpperCase();
+        const password = pass !== undefined ? pass : state.syncPassword;
+        set({ isSyncing: true });
+        try {
+          const payload = {
+            projectName: state.projectName,
+            clientName: state.clientName,
+            creatorName: state.creatorName,
+            quoteValidityDays: state.quoteValidityDays,
+            globalDiscountRate: state.globalDiscountRate,
+            targetMarginRate: state.targetMarginRate,
+            taxRate: state.taxRate,
+            items: state.items,
+            serviceItems: state.serviceItems,
+            customDevices: state.customDevices,
+            deletedDeviceIds: state.deletedDeviceIds,
+            deletedCustomDevices: state.deletedCustomDevices,
+            customServices: state.customServices,
+            deletedServiceIds: state.deletedServiceIds,
+            templates: state.templates,
+            brands: state.brands,
+            brandRenames: state.brandRenames,
+          };
+
+          const res = await fetch('https://bin0sky.tech/api/bom/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, pass: password, payload }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || '保存到云端失败');
+          }
+
+          set({
+            syncCode: code,
+            syncPassword: password,
+            lastSyncedAt: Date.now(),
+            isSyncing: false,
+          });
+          return { success: true, message: `已成功保存到云端，同步码：${code}` };
+        } catch (err: any) {
+          set({ isSyncing: false });
+          return { success: false, message: err?.message || '网络或服务异常' };
+        }
+      },
+
+      loadFromCloud: async (inputCode, pass) => {
+        const cleanCode = (inputCode || '').trim().toUpperCase();
+        if (!cleanCode) {
+          return { success: false, message: '请输入同步码' };
+        }
+        set({ isSyncing: true });
+        try {
+          const url = new URL('https://bin0sky.tech/api/bom/sync');
+          url.searchParams.set('code', cleanCode);
+          if (pass) url.searchParams.set('pass', pass.trim());
+
+          const res = await fetch(url.toString());
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || '从云端读取失败');
+          }
+
+          const p = data.payload || {};
+          set({
+            syncCode: cleanCode,
+            syncPassword: pass || '',
+            lastSyncedAt: data.updatedAt || Date.now(),
+            isSyncing: false,
+            ...(p.projectName !== undefined ? { projectName: p.projectName } : {}),
+            ...(p.clientName !== undefined ? { clientName: p.clientName } : {}),
+            ...(p.creatorName !== undefined ? { creatorName: p.creatorName } : {}),
+            ...(p.quoteValidityDays !== undefined ? { quoteValidityDays: p.quoteValidityDays } : {}),
+            ...(p.globalDiscountRate !== undefined ? { globalDiscountRate: p.globalDiscountRate } : {}),
+            ...(p.targetMarginRate !== undefined ? { targetMarginRate: p.targetMarginRate } : {}),
+            ...(p.taxRate !== undefined ? { taxRate: p.taxRate } : {}),
+            ...(p.items ? { items: p.items } : {}),
+            ...(p.serviceItems ? { serviceItems: p.serviceItems } : {}),
+            ...(p.customDevices ? { customDevices: p.customDevices } : {}),
+            ...(p.deletedDeviceIds ? { deletedDeviceIds: p.deletedDeviceIds } : {}),
+            ...(p.deletedCustomDevices ? { deletedCustomDevices: p.deletedCustomDevices } : {}),
+            ...(p.customServices ? { customServices: p.customServices } : {}),
+            ...(p.deletedServiceIds ? { deletedServiceIds: p.deletedServiceIds } : {}),
+            ...(p.templates ? { templates: p.templates } : {}),
+            ...(p.brands ? { brands: p.brands } : {}),
+            ...(p.brandRenames ? { brandRenames: p.brandRenames } : {}),
+          });
+
+          return { success: true, message: `成功载入云端项目 [${cleanCode}]` };
+        } catch (err: any) {
+          set({ isSyncing: false });
+          return { success: false, message: err?.message || '网络或服务异常' };
+        }
+      },
     }),
     {
       name: 'netbom_storage_v1',
@@ -829,6 +948,9 @@ export const useBOMStore = create<BOMState>()(
         templates: state.templates,
         brands: state.brands,
         brandRenames: state.brandRenames,
+        syncCode: state.syncCode,
+        syncPassword: state.syncPassword,
+        lastSyncedAt: state.lastSyncedAt,
       }),
     }
   )

@@ -9,6 +9,7 @@ import { AddDeviceModal } from './components/AddDeviceModal';
 import { SceneTemplateModal } from './components/SceneTemplateModal';
 import { AISettingsModal } from './components/AISettingsModal';
 import { AIImportModal } from './components/AIImportModal';
+import { SaveSyncModal } from './components/SaveSyncModal';
 import { useBOMStore, getMergedCatalog } from './store/useBOMStore';
 import { FileSpreadsheet } from 'lucide-react';
 import LZString from 'lz-string';
@@ -36,6 +37,10 @@ export const App: React.FC = () => {
     try {
       const params = new URLSearchParams(window.location.search);
       const bomData = params.get('bom');
+      const urlCode = params.get('code');
+      if (urlCode) {
+        useBOMStore.getState().loadFromCloud(urlCode);
+      }
       if (bomData) {
         const decompressed = LZString.decompressFromEncodedURIComponent(bomData);
         if (decompressed) {
@@ -144,6 +149,8 @@ export const App: React.FC = () => {
         isOpen={isAISettingsOpen}
         onClose={() => setIsAISettingsOpen(false)}
       />
+
+      <SaveSyncModal />
 
       <BOMDrawer />
 
