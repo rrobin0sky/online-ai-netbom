@@ -10,6 +10,7 @@ import {
   RefreshCw,
   AlertCircle,
   ShieldCheck,
+  Globe,
 } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
 
@@ -37,11 +38,13 @@ export const SaveSyncModal: React.FC = () => {
     isSyncing,
     saveToCloud,
     loadFromCloud,
+    publishGlobalDefault,
   } = useBOMStore();
 
-  const [activeTab, setActiveTab] = useState<'save' | 'load'>('save');
+  const [activeTab, setActiveTab] = useState<'save' | 'load' | 'publish'>('save');
   const [loadCode, setLoadCode] = useState('');
   const [loadPassword, setLoadPassword] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [copied, setCopied] = useState(false);
   const [msg, setMsg] = useState<{ text: string; isError?: boolean } | null>(null);
 
@@ -68,6 +71,16 @@ export const SaveSyncModal: React.FC = () => {
         setSaveModalOpen(false);
       }, 1500);
     }
+  };
+
+  const handlePublish = async () => {
+    setMsg(null);
+    if (!adminPassword.trim()) {
+      setMsg({ text: '请输入管理员口令', isError: true });
+      return;
+    }
+    const res = await publishGlobalDefault(adminPassword.trim());
+    setMsg({ text: res.message, isError: !res.success });
   };
 
   const handleCopyLink = () => {
@@ -101,7 +114,7 @@ export const SaveSyncModal: React.FC = () => {
         <div className="px-5 py-3.5 bg-zinc-900/80 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Cloud className="w-4 h-4 text-zinc-300" />
-            <h3 className="text-sm font-bold text-zinc-100">云端保存与多端同步</h3>
+            <h3 className="text-sm font-bold text-zinc-100">云端保存与发布</h3>
           </div>
           <button
             onClick={() => setSaveModalOpen(false)}
@@ -111,7 +124,7 @@ export const SaveSyncModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Tab Switcher */}
+        {/* Tab Switcher (3 Tabs) */}
         <div className="flex border-b border-white/10 bg-zinc-900/40 text-xs">
           <button
             type="button"
@@ -119,7 +132,7 @@ export const SaveSyncModal: React.FC = () => {
               setActiveTab('save');
               setMsg(null);
             }}
-            className={`flex-1 py-2.5 px-4 text-center font-medium transition-colors flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2.5 px-3 text-center font-medium transition-colors flex items-center justify-center gap-1.5 ${
               activeTab === 'save'
                 ? 'text-white border-b-2 border-white/60 bg-white/[0.04]'
                 : 'text-zinc-400 hover:text-zinc-200'
@@ -128,6 +141,7 @@ export const SaveSyncModal: React.FC = () => {
             <CloudUpload className="w-3.5 h-3.5" />
             <span>保存到云端</span>
           </button>
+
           <button
             type="button"
             onClick={() => {
@@ -135,14 +149,30 @@ export const SaveSyncModal: React.FC = () => {
               setMsg(null);
               if (!loadCode && syncCode) setLoadCode(syncCode);
             }}
-            className={`flex-1 py-2.5 px-4 text-center font-medium transition-colors flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2.5 px-3 text-center font-medium transition-colors flex items-center justify-center gap-1.5 ${
               activeTab === 'load'
                 ? 'text-white border-b-2 border-white/60 bg-white/[0.04]'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <CloudDownload className="w-3.5 h-3.5" />
-            <span>从云端载入 (异地拉取)</span>
+            <span>从云端载入</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('publish');
+              setMsg(null);
+            }}
+            className={`flex-1 py-2.5 px-3 text-center font-medium transition-colors flex items-center justify-center gap-1.5 ${
+              activeTab === 'publish'
+                ? 'text-white border-b-2 border-white/60 bg-white/[0.04]'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>全网发布</span>
           </button>
         </div>
 
@@ -165,7 +195,7 @@ export const SaveSyncModal: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'save' ? (
+          {activeTab === 'save' && (
             <>
               <div>
                 <label className="block text-zinc-400 font-medium mb-1.5">
@@ -242,7 +272,9 @@ export const SaveSyncModal: React.FC = () => {
                 </div>
               </div>
             </>
-          ) : (
+          )}
+
+          {activeTab === 'load' && (
             <>
               <div>
                 <label className="block text-zinc-400 font-medium mb-1.5">
@@ -286,6 +318,51 @@ export const SaveSyncModal: React.FC = () => {
                 >
                   <CloudDownload className="w-3.5 h-3.5" />
                   <span>{isSyncing ? '载入中...' : '载入云端数据'}</span>
+                </button>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'publish' && (
+            <>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+                <div className="flex items-center gap-2 text-zinc-200 font-semibold text-xs">
+                  <Globe className="w-4 h-4 text-sky-400" />
+                  <span>站长管理：发布为全网官方默认</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  使用站长管理员口令，可将您当前录入、编辑整理好的所有设备、指导价、品牌、弱电材料及工程服务发布为全网官方公共基础库。
+                </p>
+                <div className="text-[11px] text-emerald-400/90 font-medium">
+                  ✓ 发布后，全球任何访客打开网页，都将直接默认呈现此最新版本。
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1.5">
+                  输入管理员发布口令 (Master Password)
+                </label>
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-zinc-500 ml-1" />
+                  <input
+                    type="password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="输入管理员口令 (bin0sky.tech)"
+                    className="flex-1 h-9 glass-input rounded-lg px-3 text-xs text-zinc-100"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={handlePublish}
+                  disabled={isSyncing}
+                  className={`${BTN_UNIFIED} bg-white/[0.12] hover:bg-white/[0.18] border-white/20 text-white font-semibold`}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>{isSyncing ? '发布中...' : '发布为全网默认'}</span>
                 </button>
               </div>
             </>

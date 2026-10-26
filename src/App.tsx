@@ -35,6 +35,9 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     try {
+      // 1. Fetch official published global default catalog
+      useBOMStore.getState().fetchGlobalDefault();
+
       const params = new URLSearchParams(window.location.search);
       const bomData = params.get('bom');
       const urlCode = params.get('code');

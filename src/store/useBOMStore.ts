@@ -47,6 +47,7 @@ interface BOMState {
   syncCode: string;
   syncPassword: string;
   lastSyncedAt: number | null;
+  globalDefaultVersion: number | null;
   diffDeviceIds: string[];
 
   // Search & Filter state
@@ -69,6 +70,8 @@ interface BOMState {
   setSaveModalOpen: (open: boolean) => void;
   saveToCloud: (code?: string, pass?: string) => Promise<{ success: boolean; message: string }>;
   loadFromCloud: (code: string, pass?: string) => Promise<{ success: boolean; message: string }>;
+  publishGlobalDefault: (adminKey: string) => Promise<{ success: boolean; message: string }>;
+  fetchGlobalDefault: () => Promise<boolean>;
 
   setProjectName: (name: string) => void;
   setClientName: (client: string) => void;
@@ -180,6 +183,7 @@ export const useBOMStore = create<BOMState>()(
       syncCode: 'BOM-8823',
       syncPassword: '',
       lastSyncedAt: null,
+      globalDefaultVersion: null,
       diffDeviceIds: [],
 
       searchQuery: '',
@@ -964,6 +968,99 @@ export const useBOMStore = create<BOMState>()(
           return { success: false, message: err?.message || '网络或服务异常' };
         }
       },
+
+      publishGlobalDefault: async (adminKey: string) => {
+        const cleanKey = (adminKey || '').trim();
+        if (!cleanKey) {
+          return { success: false, message: '请输入管理员口令' };
+        }
+        set({ isSyncing: true });
+        try {
+          const state = get();
+          const payload = {
+            projectName: state.projectName,
+            clientName: state.clientName,
+            creatorName: state.creatorName,
+            quoteValidityDays: state.quoteValidityDays,
+            globalDiscountRate: state.globalDiscountRate,
+            targetMarginRate: state.targetMarginRate,
+            taxRate: state.taxRate,
+            items: state.items,
+            serviceItems: state.serviceItems,
+            customDevices: state.customDevices,
+            deletedDeviceIds: state.deletedDeviceIds,
+            deletedCustomDevices: state.deletedCustomDevices,
+            purgedDeviceIds: state.purgedDeviceIds,
+            customServices: state.customServices,
+            deletedServiceIds: state.deletedServiceIds,
+            templates: state.templates,
+            brands: state.brands,
+            brandRenames: state.brandRenames,
+          };
+
+          const res = await fetch('https://bin0sky.tech/api/bom/publish-default', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminKey: cleanKey, payload }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || '发布失败');
+          }
+
+          set({
+            globalDefaultVersion: data.version,
+            isSyncing: false,
+          });
+          return {
+            success: true,
+            message: `已成功发布为全网默认版本 (v${data.version})！所有访客打开网页都将直接看到此版本。`,
+          };
+        } catch (err: any) {
+          set({ isSyncing: false });
+          return { success: false, message: err?.message || '网络或接口异常' };
+        }
+      },
+
+      fetchGlobalDefault: async () => {
+        try {
+          const res = await fetch('https://bin0sky.tech/api/bom/default');
+          const data = await res.json();
+          if (!res.ok || !data.success || !data.record) return false;
+
+          const { payload, version } = data.record;
+          if (!payload) return false;
+
+          const currentVersion = get().globalDefaultVersion;
+          if (currentVersion === null || version > currentVersion) {
+            set((state) => ({
+              globalDefaultVersion: version,
+              customDevices: payload.customDevices || state.customDevices,
+              deletedDeviceIds: payload.deletedDeviceIds || state.deletedDeviceIds,
+              deletedCustomDevices: payload.deletedCustomDevices || state.deletedCustomDevices,
+              purgedDeviceIds: payload.purgedDeviceIds || state.purgedDeviceIds,
+              customServices: payload.customServices || state.customServices,
+              deletedServiceIds: payload.deletedServiceIds || state.deletedServiceIds,
+              brands: payload.brands || state.brands,
+              brandRenames: payload.brandRenames || state.brandRenames,
+              templates: payload.templates || state.templates,
+              ...(state.items.length === 0 && payload.items?.length
+                ? {
+                    items: payload.items,
+                    serviceItems: payload.serviceItems || [],
+                    projectName: payload.projectName || state.projectName,
+                    clientName: payload.clientName || state.clientName,
+                  }
+                : {}),
+            }));
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      },
     }),
     {
       name: 'netbom_storage_v1',
@@ -990,6 +1087,7 @@ export const useBOMStore = create<BOMState>()(
         syncCode: state.syncCode,
         syncPassword: state.syncPassword,
         lastSyncedAt: state.lastSyncedAt,
+        globalDefaultVersion: state.globalDefaultVersion,
       }),
     }
   )
