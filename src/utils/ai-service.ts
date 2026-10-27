@@ -1,13 +1,18 @@
 import ExcelJS from 'exceljs';
 import { AISettingsState } from '../store/useAIStore';
 import { DeviceItem } from '../types/device';
+import { EngineeringItem, createEngineeringItem } from '../data/seedServices';
+
+export type QuoteItemType = 'device' | 'service';
 
 export interface ParsedQuoteItem {
   tempId: string;
   selected: boolean;
+  item_type: QuoteItemType; // 'device' | 'service'
   brand: string;
   series: string;
   model: string;
+  name?: string;
   part_number: string;
   category: 'switch' | 'router' | 'firewall' | 'wireless_ap' | 'transceiver' | 'power_module' | 'cable';
   form_factor: '1U' | '2U' | '3U' | '4U' | 'Modular' | 'Desktop' | 'Ceiling' | 'Module';
@@ -30,6 +35,22 @@ export interface ParsedQuoteItem {
   official_spec_url: string;
   description: string;
   ai_completed: boolean; // True if AI filled in missing official specs
+
+  // Low-voltage service fields
+  service_category?: '弱电材料' | '布线人工' | '作业费' | '项目管理费';
+  unit?: string;
+  pricing_mode?: 'fixed' | 'percent';
+  tax_rate?: number;
+}
+
+/**
+ * Intelligent keyword detection to determine whether an item belongs to low-voltage engineering
+ */
+export function isLikelyLowVoltageService(text: string): boolean {
+  if (!text) return false;
+  return /机柜|PDU|配线架|理线|网线|双绞线|光缆|跳线|尾纤|水晶头|面板|模块面板|底盒|管线|线管|桥架|线槽|人工|施工|布线|熔接|打线|点位|调试|安装|作业费|管理费|割接|培训|维保|质保|验收|辅材/i.test(
+    text
+  );
 }
 
 /**
@@ -249,82 +270,169 @@ function extractJSONFromResponse(raw: string): any {
 }
 
 /**
- * Analyze raw quote text/Excel/PDF and return structured network devices with auto-completed official specs
+ * Analyze raw quote text/Excel/PDF and return structured network devices or low-voltage services with dual-track automatic classification
  */
 export async function analyzeQuoteWithAI(
   rawText: string,
   settings: AISettingsState
 ): Promise<ParsedQuoteItem[]> {
-  const systemPrompt = `你是一位资深企业级网络设备架构师与报价专家（精通华为 Huawei、新华三 H3C、思科 Cisco、锐捷 Ruijie、Arista、FS.com 全系交换机、路由器、防火墙、无线AP及光模块）。
-你的任务是从用户提供的报价单、表格或文本中提取所有网络设备，并自动补全缺失的官方硬件参数（严格依据厂商官网技术白皮书真实数据）。
+  const systemPrompt = `你是一位资深企业级网络工程师与弱电智能化系统集成报价专家。
+用户会提供一份采购清单、报价单表格或物料文本（可能包含网络硬件、弱电线缆机房辅材以及施工安装人工取费的混合清单）。
+你的任务是对每一项内容进行【智能双轨分类】，准确识别它是属于【网络硬件设备 (device)】还是【弱电工程与辅材服务 (service)】：
 
-请严格返回 JSON 数组格式（不要附加多余解释），数组中每个对象的字段定义如下：
+【智能双轨分类规则】：
+1. "device" (网络硬件设备)：
+   - 核心交换机、汇聚交换机、接入交换机、路由器、企业网关、下一代防火墙、无线AP/AC控制器、SFP/SFP+/QSFP光模块、交换机电源模块等。
+   - 自动推导并检索厂商官网硬件技术参数（端口规格、交换容量、包转发率、PoE功率、双电源支持）。
+
+2. "service" (弱电材料、布线施工人工、工程作业与管理费)：
+   - 弱电材料/机房辅材：标准服务器机柜(42U/24U/12U)、机柜PDU插排、六类/超五类网线(双绞线)、室内/室外光缆、光纤跳线、尾纤、光纤配线架(ODF)、网络配线架、理线架/理线器、网络水晶头、信息面板、PVC线管/桥架、接地铜排等。
+   - 布线人工：网络综合布线人工施工、信息点位打线测试、光纤熔接、桥架敷设、穿线放线人工等。
+   - 作业费与调试：网络设备上架安装、交换机VLAN与堆叠配置调试、路由策略联调、防火墙策略配置、系统割接上线演练、工程测试验收等。
+   - 项目管理费：工程项目管理协调费、安全文明施工费、系统质保服务费等。
+
+请严格返回合法的 JSON 数组格式（不要附带任何多余解释），数组中每个对象的字段定义如下：
 [
   {
-    "brand": "Huawei" | "H3C" | "Cisco" | "Ruijie" | "Arista" | "FS.com",
-    "series": "产品系列，如 CloudEngine S5735-L",
-    "model": "准确产品型号，如 S5735-L48P4X-A1",
-    "part_number": "官方物料编码 P/N（若原文未提供，请按官方标准补全，如 02353GBH 或同型号标识）",
+    "item_type": "device" | "service",
+    "brand": "品牌（如 Huawei、H3C、Cisco、康普、大唐电信、图腾机柜、国产通用等）",
+    "name": "产品或服务名称（如：华为 S5735-L48P4X-A1 交换机 或 42U标准服务器机柜 或 六类非屏蔽双绞线 或 综合布线点位施工人工）",
+    "model": "准确产品型号（设备填写如 S5735-L48P4X-A1；弱电材料填写如 2000*600*1000 或 CAT6-305M，人工或服务可同名称）",
+    "part_number": "订货物料编码 P/N（如有，没有则填型号或短横杠）",
+    "description": "详细规格描述或施工工作内容",
+    "quantity": 数量数字（默认为 1）,
+    "quoted_unit_price": 单价数字或 null（文件中提取的实际含税单价，若无则为 null）,
+    "list_price_gpl": 目录指导价数字或 null（设备类尽量估算或补全官网指导价）,
+    "area_group": "施工或安装区域（如：核心机房、楼层接入、办公室点位、数据中心、外联区）",
+
+    // 若 item_type 为 "device"，请尽量补全以下硬件参数：
     "category": "switch" | "router" | "firewall" | "wireless_ap" | "transceiver" | "power_module" | "cable",
     "form_factor": "1U" | "2U" | "Modular" | "Desktop" | "Ceiling" | "Module",
     "layer": "L2" | "L2+" | "L3" | "DataCenter" | "Security" | "Accessory",
     "ports_summary": "标准端口描述，如 48 x 10/100/1000Base-T (PoE+) + 4 x 10GE SFP+",
     "downlink_speed": "1G" | "10G" | "25G" | "100G",
     "uplink_speed": "1G" | "10G" | "25G" | "40G" | "100G",
-    "switching_capacity_gbps": 数字(交换容量Gbps，如 176),
-    "forwarding_rate_mpps": 数字(包转发率Mpps，如 132),
-    "poe_supported": 布尔值(true/false),
-    "poe_budget_watts": 数字(PoE功率W，无则为0),
+    "switching_capacity_gbps": 数字(交换容量Gbps),
+    "forwarding_rate_mpps": 数字(包转发率Mpps),
+    "poe_supported": 布尔值,
+    "poe_budget_watts": 数字(PoE功率W),
     "power_type": "fixed" | "modular",
-    "power_slots": 数字(电源槽位数，1或2),
-    "default_included_power": 数字(出厂标配含几个电源，0/1/2),
-    "redundancy_supported": 布尔值(是否支持双电源冗余),
-    "list_price_gpl": 数字或null(目录指导价/面价),
-    "quoted_unit_price": 数字或null(文件中的实际单价/报价，若无则为null),
-    "quantity": 数字(数量，默认为1),
-    "area_group": "核心层" | "汇聚层" | "接入层" | "外联安全区" | "数据中心",
-    "official_spec_url": "厂商官网对应产品页URL",
-    "description": "一句话核心特性描述",
-    "ai_completed": 布尔值(若原文缺失技术规格且由你根据官网知识补全，设为 true)
+    "redundancy_supported": 布尔值,
+    "official_spec_url": "厂商官网产品页URL",
+    "ai_completed": 布尔值,
+
+    // 若 item_type 为 "service"，请补全以下工程服务字段：
+    "service_category": "弱电材料" | "布线人工" | "作业费" | "项目管理费",
+    "unit": "单位，如 台 | 箱 | 米 | 条 | 点 | 项 | 次 | 套",
+    "pricing_mode": "fixed" | "percent",
+    "tax_rate": 对应税率数字（弱电材料通常为 0.13，施工安装人工通常为 0.09，现代服务/管理通常为 0.06）
   }
 ]`;
 
-  const userPrompt = `请分析以下报价单/设备清单内容，提取所有产品并补全官方技术参数：\n\n${rawText.slice(0, 24000)}`;
+  const userPrompt = `请分析以下报价单/清单内容，进行【网络设备】与【弱电工程】智能双轨提取：\n\n${rawText.slice(0, 24000)}`;
 
   const responseText = await callLLM(systemPrompt, userPrompt, settings);
   const parsed = extractJSONFromResponse(responseText);
   const list = Array.isArray(parsed) ? parsed : [parsed];
 
-  return list.map((item: any, idx: number) => ({
-    tempId: `ai-${Date.now()}-${idx}`,
-    selected: true,
-    brand: item.brand ? String(item.brand).trim() : 'Huawei',
-    series: item.series || `${item.brand || 'Huawei'} Series`,
-    model: item.model || 'Unknown-Model',
-    part_number: item.part_number || item.model || 'TBD',
-    category: item.category || 'switch',
-    form_factor: item.form_factor || '1U',
-    layer: item.layer || 'L2+',
-    ports_summary: item.ports_summary || '标准以太网端口配置',
-    downlink_speed: item.downlink_speed || '1G',
-    uplink_speed: item.uplink_speed || '10G',
-    switching_capacity_gbps: Number(item.switching_capacity_gbps) || 0,
-    forwarding_rate_mpps: Number(item.forwarding_rate_mpps) || 0,
-    poe_supported: Boolean(item.poe_supported),
-    poe_budget_watts: Number(item.poe_budget_watts) || 0,
-    power_type: item.power_type === 'modular' ? 'modular' : 'fixed',
-    power_slots: Number(item.power_slots) || 1,
-    default_included_power:
-      item.default_included_power !== undefined ? Number(item.default_included_power) : 1,
-    redundancy_supported: Boolean(item.redundancy_supported),
-    list_price_gpl: item.list_price_gpl ? Number(item.list_price_gpl) : null,
-    quoted_unit_price: item.quoted_unit_price ? Number(item.quoted_unit_price) : null,
-    quantity: Number(item.quantity) || 1,
-    area_group: item.area_group || '接入层',
-    official_spec_url: item.official_spec_url || 'https://e.huawei.com',
-    description: item.description || `${item.model} 企业级网络设备`,
-    ai_completed: item.ai_completed ?? true,
-  }));
+  return list.map((item: any, idx: number) => {
+    const rawTextCombined = `${item.name || ''} ${item.model || ''} ${item.description || ''} ${item.brand || ''}`;
+    const detectedService = item.item_type === 'service' || isLikelyLowVoltageService(rawTextCombined);
+    const itemType: QuoteItemType = detectedService ? 'service' : 'device';
+
+    // Infer service category if service
+    let serviceCat: '弱电材料' | '布线人工' | '作业费' | '项目管理费' = '弱电材料';
+    if (item.service_category) {
+      serviceCat = item.service_category;
+    } else if (/人工|施工|布线|熔接|打线/i.test(rawTextCombined)) {
+      serviceCat = '布线人工';
+    } else if (/作业|安装|调试|配置|割接|培训/i.test(rawTextCombined)) {
+      serviceCat = '作业费';
+    } else if (/管理|质保|维保|配合/i.test(rawTextCombined)) {
+      serviceCat = '项目管理费';
+    }
+
+    // Default unit
+    let defaultUnit = item.unit || '台';
+    if (!item.unit && itemType === 'service') {
+      if (/线|缆/i.test(rawTextCombined)) defaultUnit = '箱';
+      else if (/人工|点位/i.test(rawTextCombined)) defaultUnit = '点';
+      else if (/作业|调试|管理|系统/i.test(rawTextCombined)) defaultUnit = '项';
+      else if (/跳线/i.test(rawTextCombined)) defaultUnit = '条';
+      else defaultUnit = '台';
+    }
+
+    const defaultTax =
+      item.tax_rate !== undefined
+        ? Number(item.tax_rate)
+        : serviceCat === '弱电材料'
+        ? 0.13
+        : serviceCat === '布线人工' || serviceCat === '作业费'
+        ? 0.09
+        : 0.06;
+
+    return {
+      tempId: `ai-${Date.now()}-${idx}`,
+      selected: true,
+      item_type: itemType,
+      brand: item.brand ? String(item.brand).trim() : itemType === 'service' ? '综合弱电' : 'Huawei',
+      series: item.series || (itemType === 'service' ? serviceCat : `${item.brand || 'Huawei'} Series`),
+      model: item.model || item.name || '通用项目',
+      name: item.name || item.model || '未命名项目',
+      part_number: item.part_number || item.model || '-',
+      category: item.category || 'switch',
+      form_factor: item.form_factor || '1U',
+      layer: item.layer || 'L2+',
+      ports_summary: item.ports_summary || (itemType === 'service' ? item.description || serviceCat : '标准端口配置'),
+      downlink_speed: item.downlink_speed || '1G',
+      uplink_speed: item.uplink_speed || '10G',
+      switching_capacity_gbps: Number(item.switching_capacity_gbps) || 0,
+      forwarding_rate_mpps: Number(item.forwarding_rate_mpps) || 0,
+      poe_supported: Boolean(item.poe_supported),
+      poe_budget_watts: Number(item.poe_budget_watts) || 0,
+      power_type: item.power_type === 'modular' ? 'modular' : 'fixed',
+      power_slots: Number(item.power_slots) || 1,
+      default_included_power:
+        item.default_included_power !== undefined ? Number(item.default_included_power) : 1,
+      redundancy_supported: Boolean(item.redundancy_supported),
+      list_price_gpl: item.list_price_gpl ? Number(item.list_price_gpl) : null,
+      quoted_unit_price: item.quoted_unit_price ? Number(item.quoted_unit_price) : null,
+      quantity: Number(item.quantity) || 1,
+      area_group: item.area_group || (itemType === 'service' ? '综合布线区' : '接入层'),
+      official_spec_url: item.official_spec_url || 'https://e.huawei.com',
+      description: item.description || item.name || `${item.model} 项目`,
+      ai_completed: item.ai_completed ?? true,
+      service_category: serviceCat,
+      unit: defaultUnit,
+      pricing_mode: item.pricing_mode === 'percent' ? 'percent' : 'fixed',
+      tax_rate: defaultTax,
+    };
+  });
+}
+
+/**
+ * Convert a ParsedQuoteItem into an EngineeringItem (Low-voltage service/materials)
+ */
+export function convertParsedToEngineeringItem(p: ParsedQuoteItem): EngineeringItem {
+  const slug = `srv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+  const incl = p.quoted_unit_price ?? 0;
+  const tax = p.tax_rate ?? (p.service_category === '弱电材料' ? 0.13 : 0.09);
+  const excl = Math.round((incl / (1 + tax)) * 100) / 100;
+
+  return createEngineeringItem({
+    id: slug,
+    category: p.service_category || '弱电材料',
+    brand: p.brand || '综合布线',
+    name: p.name || p.model || '弱电项目',
+    model: p.model || '-',
+    part_number: p.part_number || '-',
+    specs: p.description || p.ports_summary || '标准弱电及工程施工规范',
+    unit: p.unit || '项',
+    pricingMode: p.pricing_mode || 'fixed',
+    unitPriceInclTax: incl,
+    taxRate: tax,
+    notes: p.description || '',
+  });
 }
 
 /**
