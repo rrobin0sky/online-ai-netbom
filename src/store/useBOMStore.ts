@@ -327,7 +327,7 @@ export const useBOMStore = create<BOMState>()(
                 {
                   accessoryId: accessory.id,
                   accessoryName: accessory.name,
-                  partNumber: accessory.part_number,
+                  partNumber: accessory.partNumber || accessory.part_number || '',
                   quantity,
                   unitPrice: accessory.reference_price,
                 },
@@ -722,7 +722,7 @@ export const useBOMStore = create<BOMState>()(
             return {
               accessoryId: accDef.accessoryId,
               accessoryName: acc ? acc.name : '网络配件',
-              partNumber: acc ? acc.part_number : '',
+              partNumber: acc ? (acc.partNumber || acc.part_number || '') : '',
               quantity: accDef.quantity,
               unitPrice: acc ? acc.reference_price : 0,
             };
@@ -1036,23 +1036,19 @@ export const useBOMStore = create<BOMState>()(
           if (currentVersion === null || version > currentVersion) {
             set((state) => ({
               globalDefaultVersion: version,
-              customDevices: payload.customDevices || state.customDevices,
-              deletedDeviceIds: payload.deletedDeviceIds || state.deletedDeviceIds,
-              deletedCustomDevices: payload.deletedCustomDevices || state.deletedCustomDevices,
-              purgedDeviceIds: payload.purgedDeviceIds || state.purgedDeviceIds,
-              customServices: payload.customServices || state.customServices,
-              deletedServiceIds: payload.deletedServiceIds || state.deletedServiceIds,
+              customDevices: payload.customDevices !== undefined ? payload.customDevices : state.customDevices,
+              deletedDeviceIds: payload.deletedDeviceIds !== undefined ? payload.deletedDeviceIds : state.deletedDeviceIds,
+              deletedCustomDevices: payload.deletedCustomDevices !== undefined ? payload.deletedCustomDevices : state.deletedCustomDevices,
+              purgedDeviceIds: payload.purgedDeviceIds !== undefined ? payload.purgedDeviceIds : state.purgedDeviceIds,
+              customServices: payload.customServices !== undefined ? payload.customServices : state.customServices,
+              deletedServiceIds: payload.deletedServiceIds !== undefined ? payload.deletedServiceIds : state.deletedServiceIds,
               brands: payload.brands || state.brands,
               brandRenames: payload.brandRenames || state.brandRenames,
               templates: payload.templates || state.templates,
-              ...(state.items.length === 0 && payload.items?.length
-                ? {
-                    items: payload.items,
-                    serviceItems: payload.serviceItems || [],
-                    projectName: payload.projectName || state.projectName,
-                    clientName: payload.clientName || state.clientName,
-                  }
-                : {}),
+              items: payload.items !== undefined ? payload.items : state.items,
+              serviceItems: payload.serviceItems !== undefined ? payload.serviceItems : state.serviceItems,
+              ...(payload.projectName ? { projectName: payload.projectName } : {}),
+              ...(payload.clientName ? { clientName: payload.clientName } : {}),
             }));
             return true;
           }
