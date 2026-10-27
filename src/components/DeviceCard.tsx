@@ -11,6 +11,7 @@ import {
   Edit3,
   Trash2,
   RotateCcw,
+  Lock,
 } from 'lucide-react';
 import { DeviceItem } from '../types/device';
 import { useBOMStore } from '../store/useBOMStore';
@@ -38,6 +39,8 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
     deleteDevice,
     restoreDevice,
     permanentlyDeleteDevice,
+    isCostUnlocked,
+    setCostModalOpen,
   } = useBOMStore();
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -163,21 +166,37 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
 
           {/* Right: Unit Price & 指导价 */}
           <div className="text-right flex-shrink-0">
-            {unitPrice !== null ? (
-              <div>
-                <div className="text-sm font-bold font-mono text-zinc-100">
-                  ¥{unitPrice.toLocaleString()}
-                </div>
-                {gpl !== null && (
-                  <div className="text-[11px] font-mono text-zinc-400">
-                    指导价 ¥{gpl.toLocaleString()}
-                  </div>
-                )}
+            {gpl !== null ? (
+              <div className="text-xs font-mono text-zinc-200 font-semibold">
+                指导价 ¥{gpl.toLocaleString()}
               </div>
             ) : (
-              <span className="text-xs font-medium text-zinc-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/10">
-                待核价
-              </span>
+              <div className="text-xs text-zinc-500 font-mono">暂无指导价</div>
+            )}
+
+            {isCostUnlocked ? (
+              unitPrice !== null ? (
+                <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                  成本 ¥{unitPrice.toLocaleString()}
+                </div>
+              ) : (
+                <span className="text-[11px] font-medium text-zinc-400 bg-white/[0.05] px-1.5 py-0.5 rounded border border-white/10 mt-0.5 inline-block">
+                  待核价
+                </span>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCostModalOpen(true);
+                }}
+                className="mt-1 text-[10px] font-medium text-zinc-400 hover:text-zinc-200 bg-white/[0.04] hover:bg-white/[0.08] px-1.5 py-0.5 rounded border border-white/10 inline-flex items-center gap-1 transition-colors cursor-pointer"
+                title="输入口令查看内部成本价"
+              >
+                <Lock className="w-2.5 h-2.5 text-zinc-500" />
+                <span>成本锁定</span>
+              </button>
             )}
           </div>
         </div>

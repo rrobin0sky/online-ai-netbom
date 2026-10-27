@@ -43,12 +43,22 @@ interface BOMState {
   // UI state
   isDrawerOpen: boolean;
   isSaveModalOpen: boolean;
+  isCostModalOpen: boolean;
+  isCostUnlocked: boolean;
   isSyncing: boolean;
   syncCode: string;
   syncPassword: string;
   lastSyncedAt: number | null;
   globalDefaultVersion: number | null;
   diffDeviceIds: string[];
+
+  // Two-stage review workflow (两次核查)
+  techReviewed: boolean;
+  techReviewer: string;
+  techReviewedAt: number | null;
+  commercialReviewed: boolean;
+  commercialReviewer: string;
+  commercialReviewedAt: number | null;
 
   // Search & Filter state
   searchQuery: string;
@@ -64,6 +74,14 @@ interface BOMState {
   // Actions
   setWorkspaceTab: (tab: 'devices' | 'services') => void;
   setSelectedServiceCategory: (cat: string) => void;
+
+  unlockCost: (password: string) => boolean;
+  lockCost: () => void;
+  setCostModalOpen: (open: boolean) => void;
+
+  setTechReview: (reviewed: boolean, reviewer?: string) => void;
+  setCommercialReview: (reviewed: boolean, reviewer?: string) => void;
+  resetReviewStatus: () => void;
 
   setSyncCode: (code: string) => void;
   setSyncPassword: (pass: string) => void;
@@ -179,12 +197,21 @@ export const useBOMStore = create<BOMState>()(
 
       isDrawerOpen: false,
       isSaveModalOpen: false,
+      isCostModalOpen: false,
+      isCostUnlocked: false,
       isSyncing: false,
       syncCode: 'BOM-8823',
       syncPassword: '',
       lastSyncedAt: null,
       globalDefaultVersion: null,
       diffDeviceIds: [],
+
+      techReviewed: false,
+      techReviewer: '',
+      techReviewedAt: null,
+      commercialReviewed: false,
+      commercialReviewer: '',
+      commercialReviewedAt: null,
 
       searchQuery: '',
       selectedBrand: 'all',
@@ -195,6 +222,43 @@ export const useBOMStore = create<BOMState>()(
       recentOnly: false,
       unpricedOnly: false,
       trashView: false,
+
+      unlockCost: (password: string) => {
+        if (password.trim() === 'bin1sky') {
+          set({ isCostUnlocked: true, isCostModalOpen: false });
+          return true;
+        }
+        return false;
+      },
+      lockCost: () => set({ isCostUnlocked: false }),
+      setCostModalOpen: (isCostModalOpen: boolean) => set({ isCostModalOpen }),
+
+      setTechReview: (reviewed: boolean, reviewer = '技术架构师') => {
+        set({
+          techReviewed: reviewed,
+          techReviewer: reviewed ? reviewer : '',
+          techReviewedAt: reviewed ? Date.now() : null,
+        });
+      },
+
+      setCommercialReview: (reviewed: boolean, reviewer = '商务负责人') => {
+        set({
+          commercialReviewed: reviewed,
+          commercialReviewer: reviewed ? reviewer : '',
+          commercialReviewedAt: reviewed ? Date.now() : null,
+        });
+      },
+
+      resetReviewStatus: () => {
+        set({
+          techReviewed: false,
+          techReviewer: '',
+          techReviewedAt: null,
+          commercialReviewed: false,
+          commercialReviewer: '',
+          commercialReviewedAt: null,
+        });
+      },
 
       setSyncCode: (syncCode) => set({ syncCode }),
       setSyncPassword: (syncPassword) => set({ syncPassword }),
@@ -1084,6 +1148,13 @@ export const useBOMStore = create<BOMState>()(
         syncPassword: state.syncPassword,
         lastSyncedAt: state.lastSyncedAt,
         globalDefaultVersion: state.globalDefaultVersion,
+        isCostUnlocked: state.isCostUnlocked,
+        techReviewed: state.techReviewed,
+        techReviewer: state.techReviewer,
+        techReviewedAt: state.techReviewedAt,
+        commercialReviewed: state.commercialReviewed,
+        commercialReviewer: state.commercialReviewer,
+        commercialReviewedAt: state.commercialReviewedAt,
       }),
     }
   )

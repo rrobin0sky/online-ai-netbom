@@ -10,6 +10,7 @@ import { SceneTemplateModal } from './components/SceneTemplateModal';
 import { AISettingsModal } from './components/AISettingsModal';
 import { AIImportModal } from './components/AIImportModal';
 import { SaveSyncModal } from './components/SaveSyncModal';
+import { CostUnlockModal } from './components/CostUnlockModal';
 import { useBOMStore, getMergedCatalog } from './store/useBOMStore';
 import { FileSpreadsheet } from 'lucide-react';
 import LZString from 'lz-string';
@@ -154,6 +155,8 @@ export const App: React.FC = () => {
       />
 
       <SaveSyncModal />
+
+      <CostUnlockModal />
 
       <BOMDrawer />
 

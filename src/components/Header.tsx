@@ -6,6 +6,8 @@ import {
   Upload,
   LayoutTemplate,
   Cloud,
+  Lock,
+  LockOpen,
 } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
 
@@ -29,6 +31,9 @@ export const Header: React.FC<HeaderProps> = ({
     searchQuery,
     setSearchQuery,
     setSaveModalOpen,
+    isCostUnlocked,
+    lockCost,
+    setCostModalOpen,
   } = useBOMStore();
 
   const totalItemCount =
@@ -117,6 +122,26 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <GitCompare className="w-3.5 h-3.5 text-zinc-400" />
               <span>对比 ({diffDeviceIds.length})</span>
+            </button>
+          )}
+
+          {isCostUnlocked ? (
+            <button
+              onClick={lockCost}
+              className={`${BTN_BASE} text-amber-300 hover:text-amber-200 border-amber-500/30 bg-amber-500/10`}
+              title="成本价已解锁，点击快速上锁（防窥演示模式）"
+            >
+              <LockOpen className="w-3.5 h-3.5" />
+              <span>已解锁</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setCostModalOpen(true)}
+              className={BTN_BASE}
+              title="输入口令查看内部成本价"
+            >
+              <Lock className="w-3.5 h-3.5 text-zinc-400" />
+              <span>成本</span>
             </button>
           )}
 

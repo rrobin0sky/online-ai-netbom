@@ -11,6 +11,10 @@ export interface ExportOptions {
   taxRate: number;
   items: BOMItem[];
   serviceItems?: BOMServiceItem[];
+  techReviewed?: boolean;
+  techReviewer?: string;
+  commercialReviewed?: boolean;
+  commercialReviewer?: string;
 }
 
 function round2(n: number): number {
@@ -27,6 +31,10 @@ export async function exportBOMToExcel(options: ExportOptions) {
     taxRate,
     items,
     serviceItems = [],
+    techReviewed = false,
+    techReviewer = '',
+    commercialReviewed = false,
+    commercialReviewer = '',
   } = options;
 
   const workbook = new ExcelJS.Workbook();
@@ -68,7 +76,7 @@ export async function exportBOMToExcel(options: ExportOptions) {
   };
   worksheet.getRow(1).height = 38;
 
-  // 2. Metadata Sub-header (with 报价有效期)
+  // 2. Metadata Sub-header (with 报价有效期 & 双重核查签名)
   worksheet.mergeCells('A2:M2');
   const subMetaCell = worksheet.getCell('A2');
   const now = new Date();
@@ -76,8 +84,16 @@ export async function exportBOMToExcel(options: ExportOptions) {
   const validUntilDate = new Date(now.getTime() + quoteValidityDays * 86400000)
     .toISOString()
     .split('T')[0];
-  subMetaCell.value = `客户单位: ${clientName}    |    编制: ${creatorName}    |    报价日期: ${dateStr}    |    报价有效期: ${quoteValidityDays}天 (至 ${validUntilDate})`;
-  subMetaCell.font = { name: 'Microsoft YaHei', size: 10, color: { argb: 'FFD4D4D8' } };
+
+  const reviewStatusText =
+    techReviewed && commercialReviewed
+      ? `技术复核: ${techReviewer || '已核验'}   |   商务终审: ${commercialReviewer || '已核准'} (正式投标级)`
+      : techReviewed
+      ? `技术复核: ${techReviewer || '已核验'}   |   商务终审: 待复核`
+      : '核查状态: 待技术与商务双重核查 (草案)';
+
+  subMetaCell.value = `客户单位: ${clientName}    |    编制: ${creatorName}    |    报价日期: ${dateStr}    |    有效期: ${quoteValidityDays}天    |    ${reviewStatusText}`;
+  subMetaCell.font = { name: 'Microsoft YaHei', size: 9.5, color: { argb: 'FFD4D4D8' } };
   subMetaCell.alignment = { vertical: 'middle', horizontal: 'center' };
   subMetaCell.fill = {
     type: 'pattern',
@@ -86,10 +102,26 @@ export async function exportBOMToExcel(options: ExportOptions) {
   };
   worksheet.getRow(2).height = 24;
 
-  worksheet.addRow([]);
-  worksheet.getRow(3).height = 8;
-
   let currentRowIndex = 4;
+
+  // 3. Draft Warning Banner if not both reviewed
+  if (!techReviewed || !commercialReviewed) {
+    worksheet.mergeCells('A3:M3');
+    const warnCell = worksheet.getCell('A3');
+    warnCell.value = '⚠️【草案警示】本工程报价清单尚未完成技术/商务双重核验，仅供内部技术评审，严禁作为正式对外投标报价文件。';
+    warnCell.font = { name: 'Microsoft YaHei', size: 9.5, bold: true, color: { argb: 'FF92400E' } };
+    warnCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    warnCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFEF3C7' },
+    };
+    worksheet.getRow(3).height = 24;
+    currentRowIndex = 5;
+  } else {
+    worksheet.addRow([]);
+    worksheet.getRow(3).height = 8;
+  }
 
   // Pre-calculate equipment & fixed service totals for percentage-mode services
   let equipExclSubtotal = 0;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   X,
   FileSpreadsheet,
@@ -10,6 +10,13 @@ import {
   BookmarkPlus,
   Plus,
   Layers,
+  Wrench,
+  ShieldCheck,
+  CheckCircle2,
+  Activity,
+  RotateCcw,
+  AlertTriangle,
+  AlertCircle,
 } from 'lucide-react';
 import { useBOMStore, getMergedServiceCatalog } from '../store/useBOMStore';
 import { exportBOMToExcel } from '../utils/excel-export';
@@ -90,6 +97,15 @@ export const BOMDrawer: React.FC = () => {
     updateServiceTaxRate,
     saveCurrentBOMAsTemplate,
     generateShareUrl,
+    techReviewed,
+    techReviewer,
+    commercialReviewed,
+    commercialReviewer,
+    setTechReview,
+    setCommercialReview,
+    resetReviewStatus,
+    isCostUnlocked,
+    setCostModalOpen,
   } = useBOMStore();
 
   const [copied, setCopied] = useState(false);
@@ -97,6 +113,7 @@ export const BOMDrawer: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [activeAccessoryUID, setActiveAccessoryUID] = useState<string | null>(null);
   const [isServicePickerOpen, setIsServicePickerOpen] = useState(false);
+  const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
 
   if (!isDrawerOpen) return null;
 
@@ -168,6 +185,105 @@ export const BOMDrawer: React.FC = () => {
 
   const availableServices = getMergedServiceCatalog(customServices, deletedServiceIds);
 
+  const auditIssues = useMemo(() => {
+    const issues: { type: 'severe' | 'warn' | 'ok'; title: string; desc: string }[] = [];
+    if (items.length === 0 && (!serviceItems || serviceItems.length === 0)) {
+      return issues;
+    }
+
+    // 1. Modular power supply check
+    items.forEach((item) => {
+      const needsPowerWarning =
+        item.device.specs.power_supply.type === 'modular' &&
+        item.device.specs.power_supply.default_included === 0 &&
+        (!item.selectedAccessories ||
+          !item.selectedAccessories.some(
+            (a) => a.accessoryId.includes('pwr') || a.accessoryId.includes('pac')
+          ));
+      if (needsPowerWarning) {
+        issues.push({
+          type: 'severe',
+          title: `${item.device.model} 裸机未配电源模块`,
+          desc: '该机型为插槽式双电源架构，出厂不含电源模块，当前清单未选配任何电源配件！',
+        });
+      }
+    });
+
+    // 2. 0 price items check
+    items.forEach((item) => {
+      const gpl = item.device.pricing.list_price_gpl;
+      const effectiveDiscount = item.itemDiscountRate ?? globalDiscountRate;
+      const unitPrice =
+        item.customUnitPrice !== null
+          ? item.customUnitPrice
+          : item.device.pricing.cost_estimate !== null
+          ? item.device.pricing.cost_estimate
+          : gpl !== null
+          ? Math.round(gpl * effectiveDiscount)
+          : 0;
+      if (!unitPrice || unitPrice <= 0) {
+        issues.push({
+          type: 'warn',
+          title: `${item.device.model} 单价为0或待核价`,
+          desc: '该设备当前未填写单价，请补充实际报价或进货折扣。',
+        });
+      }
+    });
+
+    // 3. Optical ports vs transceivers
+    let totalOpticalPorts = 0;
+    let totalTransceivers = 0;
+    items.forEach((item) => {
+      const uplinkCount = item.device.specs.ports.uplink_count || 0;
+      totalOpticalPorts += uplinkCount * item.quantity;
+      (item.selectedAccessories || []).forEach((acc) => {
+        if (acc.accessoryId.includes('sfp')) {
+          totalTransceivers += acc.quantity * item.quantity;
+        }
+      });
+    });
+    if (totalOpticalPorts > 0 && totalTransceivers === 0) {
+      issues.push({
+        type: 'warn',
+        title: '万兆光口未选配光模块',
+        desc: `整单共计 ${totalOpticalPorts} 个万兆光口，当前尚未选配任何 SFP+ 模块或 DAC 直连线缆。`,
+      });
+    }
+
+    // 4. Multi-tax check
+    const itemTaxes = items.map((i) => i.itemTaxRate ?? taxRate);
+    const mixedTaxes = new Set([taxRate, ...itemTaxes]);
+    if (mixedTaxes.size > 1) {
+      issues.push({
+        type: 'ok',
+        title: '存在多档税率配置',
+        desc: `清单包含 ${Array.from(mixedTaxes)
+          .map((t) => (t * 100).toFixed(0) + '%')
+          .join('、')} 差异税率，系统已按单行精确计算税金。`,
+      });
+    }
+
+    return issues;
+  }, [items, serviceItems, taxRate, globalDiscountRate]);
+
+  const hasSevereIssue = auditIssues.some((i) => i.type === 'severe');
+
+  const handleTechReview = () => {
+    const name = prompt('请输入技术复核人姓名（如：张工 / 售前网络架构师）：', techReviewer || '张工');
+    if (!name) return;
+    setTechReview(true, name.trim());
+  };
+
+  const handleCommercialReview = () => {
+    if (!techReviewed) {
+      alert('请先完成第 1 步技术复核，再进行商务终审！');
+      return;
+    }
+    const name = prompt('请输入商务审核人姓名（如：李总 / 商务总监）：', commercialReviewer || '李总');
+    if (!name) return;
+    setCommercialReview(true, name.trim());
+  };
+
   const handleShare = () => {
     const url = generateShareUrl();
     navigator.clipboard.writeText(url);
@@ -197,6 +313,10 @@ export const BOMDrawer: React.FC = () => {
         taxRate,
         items,
         serviceItems,
+        techReviewed,
+        techReviewer,
+        commercialReviewed,
+        commercialReviewer,
       });
     } finally {
       setIsExporting(false);
@@ -310,6 +430,121 @@ export const BOMDrawer: React.FC = () => {
               </select>
             </div>
             <span className="font-mono text-[11px] text-zinc-500">{todayStr}</span>
+          </div>
+        </div>
+
+        {/* Two-Stage Review & Health Check Bar */}
+        <div className="px-4 py-2 bg-zinc-900/60 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
+          {/* Left: Two-Stage Verification Workflow */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 text-zinc-400 font-medium">
+              <ShieldCheck className="w-4 h-4 text-zinc-300" />
+              <span>报价双核流程:</span>
+            </div>
+
+            {/* Stage 1: 技术复核 */}
+            <div className="flex items-center gap-1.5">
+              {techReviewed ? (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.08] border border-white/20 text-zinc-100 font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>1. 技术复核:</span>
+                  <span className="text-zinc-200">{techReviewer || '已复核'}</span>
+                  <button
+                    type="button"
+                    onClick={handleTechReview}
+                    className="text-[10px] text-zinc-400 hover:text-white underline ml-1"
+                    title="修改技术复核人"
+                  >
+                    改名
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleTechReview}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-dashed border-white/20 text-zinc-300 hover:text-white transition-colors"
+                >
+                  <Wrench className="w-3.5 h-3.5 text-amber-400" />
+                  <span>1. 技术复核 (待核)</span>
+                </button>
+              )}
+            </div>
+
+            <span className="text-zinc-600 hidden sm:inline">→</span>
+
+            {/* Stage 2: 商务终审 */}
+            <div className="flex items-center gap-1.5">
+              {commercialReviewed ? (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.08] border border-white/20 text-zinc-100 font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>2. 商务终审:</span>
+                  <span className="text-zinc-200">{commercialReviewer || '已终审'}</span>
+                  <button
+                    type="button"
+                    onClick={handleCommercialReview}
+                    className="text-[10px] text-zinc-400 hover:text-white underline ml-1"
+                    title="修改商务审核人"
+                  >
+                    改名
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCommercialReview}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border transition-colors ${
+                    techReviewed
+                      ? 'bg-white/[0.04] hover:bg-white/[0.08] border-dashed border-white/20 text-zinc-300 hover:text-white'
+                      : 'bg-black/20 border-white/5 text-zinc-600 cursor-not-allowed'
+                  }`}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>2. 商务终审{techReviewed ? ' (待审)' : ' (需先过技术)'}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Reset Button (if any reviewed) */}
+            {(techReviewed || commercialReviewed) && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('确定要重置当前报价单的复核与审核状态吗？')) {
+                    resetReviewStatus();
+                  }
+                }}
+                className="h-6 px-2 rounded bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-zinc-400 hover:text-zinc-200 inline-flex items-center gap-1 text-[11px] transition-colors"
+                title="重置复核状态"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>重置状态</span>
+              </button>
+            )}
+          </div>
+
+          {/* Right: 报价体检 Health Check Button */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsHealthModalOpen(true)}
+              className={`h-7 px-3 rounded-lg border inline-flex items-center gap-1.5 transition-colors font-medium ${
+                hasSevereIssue
+                  ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25'
+                  : auditIssues.length > 0
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
+                  : 'bg-white/[0.05] border-white/10 text-zinc-300 hover:bg-white/[0.10]'
+              }`}
+            >
+              <Activity className={`w-3.5 h-3.5 ${hasSevereIssue ? 'text-rose-400 animate-pulse' : 'text-zinc-400'}`} />
+              <span>报价体检</span>
+              {auditIssues.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                  hasSevereIssue ? 'bg-rose-500/30 text-rose-200' : 'bg-amber-500/30 text-amber-200'
+                }`}>
+                  {auditIssues.length}项
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -984,6 +1219,26 @@ export const BOMDrawer: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            {/* Review Status Pill in Footer */}
+            <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded bg-white/[0.04] border border-white/10 text-xs text-zinc-400">
+              {techReviewed && commercialReviewed ? (
+                <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>双重复核已签发 ({techReviewer} / {commercialReviewer})</span>
+                </span>
+              ) : techReviewed ? (
+                <span className="inline-flex items-center gap-1.5 text-zinc-300">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span>技术已核 ({techReviewer}) · 待商务终审</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-amber-400/90">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <span>草案未审核 (导出带草案标识)</span>
+                </span>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={handleShare}
@@ -1018,6 +1273,80 @@ export const BOMDrawer: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Health Check Modal */}
+      {isHealthModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">
+          <div
+            onClick={() => setIsHealthModalOpen(false)}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+          />
+          <div className="relative w-full max-w-lg glass-panel-elevated border border-white/15 rounded-2xl p-5 z-10 shadow-2xl bg-zinc-950/95 flex flex-col gap-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-zinc-300" />
+                <h3 className="text-sm font-bold text-zinc-100">报价单智能体检报告</h3>
+              </div>
+              <button
+                onClick={() => setIsHealthModalOpen(false)}
+                className="h-7 w-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto space-y-2.5 pr-1">
+              {auditIssues.length === 0 ? (
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold">全面体检合规</div>
+                    <div className="text-zinc-400 mt-0.5">未发现电源缺配、光口模块漏配或零报价项，技术架构与报价规则检查正常。</div>
+                  </div>
+                </div>
+              ) : (
+                auditIssues.map((issue, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+                      issue.type === 'severe'
+                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-200'
+                        : issue.type === 'warn'
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                        : 'bg-white/[0.04] border-white/10 text-zinc-300'
+                    }`}
+                  >
+                    {issue.type === 'severe' ? (
+                      <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                    ) : issue.type === 'warn' ? (
+                      <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <div className="font-semibold text-zinc-100">{issue.title}</div>
+                      <div className="text-zinc-400 mt-0.5 leading-relaxed">{issue.desc}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+              <span className="text-zinc-500">
+                共检出 {auditIssues.length} 条体检指标
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsHealthModalOpen(false)}
+                className={BTN_UNIFIED}
+              >
+                <span>完成体检</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
