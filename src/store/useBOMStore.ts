@@ -36,6 +36,8 @@ interface BOMState {
   purgedDeviceIds: string[];
   customServices: EngineeringItem[];
   deletedServiceIds: string[];
+  deletedCustomServices: EngineeringItem[];
+  purgedServiceIds: string[];
   templates: ProjectTemplate[];
   brands: string[];
   brandRenames: Record<string, string>;
@@ -127,7 +129,10 @@ interface BOMState {
   // Service Catalog Actions
   addCustomService: (item: EngineeringItem) => void;
   deleteServiceCatalogItem: (id: string) => void;
+  restoreService: (id: string) => void;
+  permanentlyDeleteService: (id: string) => void;
   restoreDefaultServices: () => void;
+  emptyServiceTrash: () => void;
 
   // Device Catalog & Trash Actions
   addCustomDevice: (device: DeviceItem) => void;
@@ -191,6 +196,8 @@ export const useBOMStore = create<BOMState>()(
       purgedDeviceIds: [],
       customServices: [],
       deletedServiceIds: [],
+      deletedCustomServices: [],
+      purgedServiceIds: [],
       templates: SCENE_TEMPLATES,
       brands: DEFAULT_BRANDS,
       brandRenames: {},
@@ -578,6 +585,8 @@ export const useBOMStore = create<BOMState>()(
         set((state) => ({
           customServices: [srv, ...(state.customServices || []).filter((c) => c.id !== srv.id)],
           deletedServiceIds: (state.deletedServiceIds || []).filter((id) => id !== srv.id),
+          deletedCustomServices: (state.deletedCustomServices || []).filter((s) => s.id !== srv.id),
+          purgedServiceIds: (state.purgedServiceIds || []).filter((id) => id !== srv.id),
           serviceItems: (state.serviceItems || []).map((si) =>
             si.item.id === srv.id
               ? {
@@ -595,16 +604,85 @@ export const useBOMStore = create<BOMState>()(
       },
 
       deleteServiceCatalogItem: (id) => {
-        set((state) => ({
-          customServices: (state.customServices || []).filter((c) => c.id !== id),
-          deletedServiceIds: (state.deletedServiceIds || []).includes(id)
-            ? state.deletedServiceIds
-            : [...(state.deletedServiceIds || []), id],
-        }));
+        set((state) => {
+          const customSrv = (state.customServices || []).find((s) => s.id === id);
+          return {
+            customServices: (state.customServices || []).filter((c) => c.id !== id),
+            deletedCustomServices: customSrv
+              ? [
+                  customSrv,
+                  ...(state.deletedCustomServices || []).filter((s) => s.id !== id),
+                ]
+              : state.deletedCustomServices || [],
+            deletedServiceIds: (state.deletedServiceIds || []).includes(id)
+              ? state.deletedServiceIds
+              : [...(state.deletedServiceIds || []), id],
+          };
+        });
+      },
+
+      restoreService: (serviceId) => {
+        set((state) => {
+          const restoredCustom = (state.deletedCustomServices || []).find(
+            (s) => s.id === serviceId
+          );
+          const nextDeletedIds = (state.deletedServiceIds || []).filter((id) => id !== serviceId);
+          return {
+            deletedServiceIds: nextDeletedIds,
+            deletedCustomServices: (state.deletedCustomServices || []).filter(
+              (s) => s.id !== serviceId
+            ),
+            customServices: restoredCustom
+              ? [restoredCustom, ...(state.customServices || []).filter((s) => s.id !== serviceId)]
+              : state.customServices,
+            trashView: nextDeletedIds.length === 0 ? false : state.trashView,
+          };
+        });
+      },
+
+      permanentlyDeleteService: (serviceId) => {
+        set((state) => {
+          const nextDeletedIds = (state.deletedServiceIds || []).filter((id) => id !== serviceId);
+          const nextPurged = (state.purgedServiceIds || []).includes(serviceId)
+            ? state.purgedServiceIds
+            : [...(state.purgedServiceIds || []), serviceId];
+          const nextDeletedCustom = (state.deletedCustomServices || []).filter(
+            (s) => s.id !== serviceId
+          );
+          return {
+            deletedServiceIds: nextDeletedIds,
+            purgedServiceIds: nextPurged,
+            deletedCustomServices: nextDeletedCustom,
+            customServices: (state.customServices || []).filter((s) => s.id !== serviceId),
+            trashView: nextDeletedIds.length === 0 && nextDeletedCustom.length === 0 ? false : state.trashView,
+          };
+        });
+      },
+
+      emptyServiceTrash: () => {
+        set((state) => {
+          const currentPurged = state.purgedServiceIds || [];
+          const currentDeleted = state.deletedServiceIds || [];
+          const mergedPurged = Array.from(new Set([...currentPurged, ...currentDeleted]));
+          return {
+            deletedServiceIds: [],
+            purgedServiceIds: mergedPurged,
+            deletedCustomServices: [],
+            trashView: false,
+          };
+        });
       },
 
       restoreDefaultServices: () => {
-        set({ deletedServiceIds: [] });
+        set((state) => ({
+          deletedServiceIds: [],
+          customServices: [
+            ...(state.deletedCustomServices || []),
+            ...state.customServices,
+          ],
+          deletedCustomServices: [],
+          trashView: false,
+        }));
       },
 
       addCustomDevice: (device) => {
@@ -620,6 +698,7 @@ export const useBOMStore = create<BOMState>()(
             deletedCustomDevices: (state.deletedCustomDevices || []).filter(
               (d) => d.id !== device.id
             ),
+            purgedDeviceIds: (state.purgedDeviceIds || []).filter((id) => id !== device.id),
             items: state.items.map((item) =>
               item.device.id === device.id ? { ...item, device } : item
             ),
@@ -685,15 +764,27 @@ export const useBOMStore = create<BOMState>()(
 
       emptyTrash: () => {
         set((state) => {
-          const currentPurged = state.purgedDeviceIds || [];
-          const currentDeleted = state.deletedDeviceIds || [];
-          const mergedPurged = Array.from(new Set([...currentPurged, ...currentDeleted]));
-          return {
-            deletedDeviceIds: [],
-            purgedDeviceIds: mergedPurged,
-            deletedCustomDevices: [],
-            trashView: false,
-          };
+          if (state.workspaceTab === 'services') {
+            const currentPurged = state.purgedServiceIds || [];
+            const currentDeleted = state.deletedServiceIds || [];
+            const mergedPurged = Array.from(new Set([...currentPurged, ...currentDeleted]));
+            return {
+              deletedServiceIds: [],
+              purgedServiceIds: mergedPurged,
+              deletedCustomServices: [],
+              trashView: false,
+            };
+          } else {
+            const currentPurged = state.purgedDeviceIds || [];
+            const currentDeleted = state.deletedDeviceIds || [];
+            const mergedPurged = Array.from(new Set([...currentPurged, ...currentDeleted]));
+            return {
+              deletedDeviceIds: [],
+              purgedDeviceIds: mergedPurged,
+              deletedCustomDevices: [],
+              trashView: false,
+            };
+          }
         });
       },
 
@@ -978,6 +1069,8 @@ export const useBOMStore = create<BOMState>()(
             purgedDeviceIds: state.purgedDeviceIds,
             customServices: state.customServices,
             deletedServiceIds: state.deletedServiceIds,
+            deletedCustomServices: state.deletedCustomServices,
+            purgedServiceIds: state.purgedServiceIds,
             templates: state.templates,
             brands: state.brands,
             brandRenames: state.brandRenames,
@@ -1045,6 +1138,8 @@ export const useBOMStore = create<BOMState>()(
             ...(p.purgedDeviceIds ? { purgedDeviceIds: p.purgedDeviceIds } : {}),
             ...(p.customServices ? { customServices: p.customServices } : {}),
             ...(p.deletedServiceIds ? { deletedServiceIds: p.deletedServiceIds } : {}),
+            ...(p.deletedCustomServices ? { deletedCustomServices: p.deletedCustomServices } : {}),
+            ...(p.purgedServiceIds ? { purgedServiceIds: p.purgedServiceIds } : {}),
             ...(p.templates ? { templates: p.templates } : {}),
             ...(p.brands ? { brands: p.brands } : {}),
             ...(p.brandRenames ? { brandRenames: p.brandRenames } : {}),
@@ -1083,6 +1178,8 @@ export const useBOMStore = create<BOMState>()(
             purgedDeviceIds: state.purgedDeviceIds,
             customServices: state.customServices,
             deletedServiceIds: state.deletedServiceIds,
+            deletedCustomServices: state.deletedCustomServices,
+            purgedServiceIds: state.purgedServiceIds,
             templates: templatesToPublish,
             brands: state.brands,
             brandRenames: state.brandRenames,
@@ -1132,6 +1229,8 @@ export const useBOMStore = create<BOMState>()(
               purgedDeviceIds: payload.purgedDeviceIds !== undefined ? payload.purgedDeviceIds : state.purgedDeviceIds,
               customServices: payload.customServices !== undefined ? payload.customServices : state.customServices,
               deletedServiceIds: payload.deletedServiceIds !== undefined ? payload.deletedServiceIds : state.deletedServiceIds,
+              deletedCustomServices: payload.deletedCustomServices !== undefined ? payload.deletedCustomServices : state.deletedCustomServices,
+              purgedServiceIds: payload.purgedServiceIds !== undefined ? payload.purgedServiceIds : state.purgedServiceIds,
               brands: payload.brands || state.brands,
               brandRenames: payload.brandRenames || state.brandRenames,
               templates:
@@ -1182,6 +1281,8 @@ export const useBOMStore = create<BOMState>()(
         purgedDeviceIds: state.purgedDeviceIds,
         customServices: state.customServices,
         deletedServiceIds: state.deletedServiceIds,
+        deletedCustomServices: state.deletedCustomServices,
+        purgedServiceIds: state.purgedServiceIds,
         templates: state.templates,
         brands: state.brands,
         brandRenames: state.brandRenames,
@@ -1247,16 +1348,37 @@ export function getDeletedDevicesCatalog(
 }
 
 /**
- * Merge custom/edited engineering services with SEED_SERVICES, excluding deletedServiceIds
+ * Merge custom/edited engineering services with SEED_SERVICES, excluding deletedServiceIds and purgedServiceIds
  */
 export function getMergedServiceCatalog(
   customServices: EngineeringItem[] = [],
-  deletedServiceIds: string[] = []
+  deletedServiceIds: string[] = [],
+  purgedServiceIds: string[] = []
 ): EngineeringItem[] {
-  const deletedSet = new Set(deletedServiceIds);
+  const hiddenSet = new Set([...deletedServiceIds, ...purgedServiceIds]);
   const customMap = new Map(customServices.map((s) => [s.id, s]));
   const overriddenSeed = SEED_SERVICES.map((s) => customMap.get(s.id) || s);
   const seedIds = new Set(SEED_SERVICES.map((s) => s.id));
   const brandNewCustom = customServices.filter((c) => !seedIds.has(c.id));
-  return [...brandNewCustom, ...overriddenSeed].filter((s) => !deletedSet.has(s.id));
+  return [...brandNewCustom, ...overriddenSeed].filter((s) => !hiddenSet.has(s.id));
+}
+
+/**
+ * Get deleted engineering services in the Trash / Recycle Bin, excluding permanently purged ones
+ */
+export function getDeletedServicesCatalog(
+  deletedServiceIds: string[] = [],
+  deletedCustomServices: EngineeringItem[] = [],
+  purgedServiceIds: string[] = []
+): EngineeringItem[] {
+  const purgedSet = new Set(purgedServiceIds);
+  const activeDeletedIds = deletedServiceIds.filter((id) => !purgedSet.has(id));
+  const deletedSet = new Set(activeDeletedIds);
+
+  const seedIds = new Set(SEED_SERVICES.map((s) => s.id));
+  const deletedSeeds = SEED_SERVICES.filter((s) => deletedSet.has(s.id));
+  const deletedCustom = (deletedCustomServices || []).filter(
+    (c) => deletedSet.has(c.id) && !seedIds.has(c.id)
+  );
+  return [...deletedCustom, ...deletedSeeds];
 }

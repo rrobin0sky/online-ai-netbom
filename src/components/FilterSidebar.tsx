@@ -43,6 +43,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
     purgedDeviceIds,
     customServices,
     deletedServiceIds,
+    purgedServiceIds,
     restoreDefaultServices,
     brands,
     brandRenames,
@@ -64,9 +65,12 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
     brandRenames,
     purgedDeviceIds
   );
-  const allServices = getMergedServiceCatalog(customServices, deletedServiceIds);
+  const allServices = getMergedServiceCatalog(customServices, deletedServiceIds, purgedServiceIds);
   const activeDeletedCount = deletedDeviceIds.filter(
     (id) => !(purgedDeviceIds || []).includes(id)
+  ).length;
+  const activeDeletedServiceCount = (deletedServiceIds || []).filter(
+    (id) => !(purgedServiceIds || []).includes(id)
   ).length;
 
   const layers = [
@@ -384,16 +388,21 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
                   <span>新增条目</span>
                 </button>
               )}
-              {(deletedServiceIds || []).length > 0 && (
-                <button
-                  type="button"
-                  onClick={restoreDefaultServices}
-                  className={pillClass(false)}
-                >
-                  <RotateCcw className="w-3 h-3 text-zinc-400" />
-                  <span>回收站还原 ({deletedServiceIds.length})</span>
-                </button>
-              )}
+
+              <button
+                type="button"
+                onClick={() => setTrashView(!trashView)}
+                className={pillClass(trashView)}
+                title="查看并恢复已删除的弱电与服务项"
+              >
+                <Trash2 className="w-3 h-3 text-zinc-400" />
+                <span>回收站</span>
+                {activeDeletedServiceCount > 0 && (
+                  <span className="text-[10px] font-mono text-zinc-500">
+                    {activeDeletedServiceCount}
+                  </span>
+                )}
+              </button>
             </div>
           )}
         </div>

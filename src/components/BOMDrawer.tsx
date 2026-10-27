@@ -66,6 +66,7 @@ export const BOMDrawer: React.FC = () => {
     serviceItems,
     customServices,
     deletedServiceIds,
+    purgedServiceIds,
     isDrawerOpen,
     setDrawerOpen,
     projectName,
@@ -269,7 +270,7 @@ export const BOMDrawer: React.FC = () => {
   const grandTotal = round2(equipInclSubtotal + serviceInclSubtotal);
   const totalTaxAmount = round2(grandTotal - totalExclAmount);
 
-  const availableServices = getMergedServiceCatalog(customServices, deletedServiceIds);
+  const availableServices = getMergedServiceCatalog(customServices, deletedServiceIds, purgedServiceIds);
 
   const handleTechReview = () => {
     const name = prompt('请输入技术复核人姓名（如：张工 / 售前网络架构师）：', techReviewer || '张工');

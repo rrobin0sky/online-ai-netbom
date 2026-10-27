@@ -10,10 +10,12 @@ import {
   SearchX,
   X,
   Lock,
+  RotateCcw,
 } from 'lucide-react';
 import {
   useBOMStore,
   getMergedServiceCatalog,
+  getDeletedServicesCatalog,
   DEFAULT_SERVICE_CATEGORIES,
 } from '../store/useBOMStore';
 import { EngineeringItem } from '../data/seedServices';
@@ -27,14 +29,17 @@ function round2(n: number): number {
 
 interface ServiceCardProps {
   item: EngineeringItem;
+  isTrash?: boolean;
   onEdit: (item: EngineeringItem) => void;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ item, onEdit }) => {
+const ServiceCard: React.FC<ServiceCardProps> = ({ item, isTrash = false, onEdit }) => {
   const {
     serviceItems,
     addServiceItem,
     deleteServiceCatalogItem,
+    restoreService,
+    permanentlyDeleteService,
     isCostUnlocked,
     setCostModalOpen,
   } = useBOMStore();
@@ -57,6 +62,18 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ item, onEdit }) => {
     e.stopPropagation();
     if (confirm(`确定从库中删除「${item.name}」吗？`)) {
       deleteServiceCatalogItem(item.id);
+    }
+  };
+
+  const handleRestore = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    restoreService(item.id);
+  };
+
+  const handlePermanentDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm(`确定从回收站彻底删除「${item.name}」吗？彻底删除后不可恢复。`)) {
+      permanentlyDeleteService(item.id);
     }
   };
 
@@ -147,58 +164,81 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ item, onEdit }) => {
           )}
         </button>
 
-        <div className="flex items-center gap-1.5">
-          {item.pricingMode !== 'percent' && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center bg-white/[0.04] border border-white/10 rounded-md overflow-hidden h-7"
+        {isTrash ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleRestore}
+              className={CARD_BTN}
+              title="还原到弱电服务库"
             >
-              <button
-                type="button"
-                onClick={() => setAddQty((q) => Math.max(1, q - 1))}
-                className="w-6 h-full flex items-center justify-center hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+              <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
+              <span>还原</span>
+            </button>
+            <button
+              type="button"
+              onClick={handlePermanentDelete}
+              className={`${CARD_BTN} hover:text-rose-300`}
+              title="从回收站彻底删除"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-zinc-400" />
+              <span>彻底删除</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            {item.pricingMode !== 'percent' && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center bg-white/[0.04] border border-white/10 rounded-md overflow-hidden h-7"
               >
-                <Minus className="w-3 h-3" />
-              </button>
-              <input
-                type="number"
-                min={1}
-                value={addQty}
-                onChange={(e) => setAddQty(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-8 text-center bg-transparent font-mono text-xs font-medium text-zinc-100 focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setAddQty((q) => q + 1)}
-                className="w-6 h-full flex items-center justify-center hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
-              >
-                <Plus className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={handleAdd}
-            className={`${CARD_BTN} ${
-              isAdded ? 'bg-white/[0.12] border-white/25 text-white' : ''
-            }`}
-          >
-            {isAdded ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>
-                  已加{inBomQty > 0 && item.pricingMode !== 'percent' ? ` (${inBomQty})` : ''}
-                </span>
-              </>
-            ) : (
-              <>
-                <Plus className="w-3.5 h-3.5 text-zinc-400" />
-                <span>清单</span>
-              </>
+                <button
+                  type="button"
+                  onClick={() => setAddQty((q) => Math.max(1, q - 1))}
+                  className="w-6 h-full flex items-center justify-center hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  value={addQty}
+                  onChange={(e) => setAddQty(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-8 text-center bg-transparent font-mono text-xs font-medium text-zinc-100 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setAddQty((q) => q + 1)}
+                  className="w-6 h-full flex items-center justify-center hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
             )}
-          </button>
-        </div>
+
+            <button
+              type="button"
+              onClick={handleAdd}
+              className={`${CARD_BTN} ${
+                isAdded ? 'bg-white/[0.12] border-white/25 text-white' : ''
+              }`}
+            >
+              {isAdded ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>
+                    已加{inBomQty > 0 && item.pricingMode !== 'percent' ? ` (${inBomQty})` : ''}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>清单</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Collapsible Details */}
@@ -229,25 +269,27 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ item, onEdit }) => {
 
           <p className="text-xs text-zinc-400 leading-relaxed">{item.specs}</p>
 
-          <div className="flex items-center justify-end gap-1.5 pt-1">
-            <button
-              type="button"
-              onClick={() => onEdit(item)}
-              className={CARD_BTN}
-            >
-              <Edit3 className="w-3 h-3 text-zinc-400" />
-              <span>编辑</span>
-            </button>
+          {!isTrash && (
+            <div className="flex items-center justify-end gap-1.5 pt-1">
+              <button
+                type="button"
+                onClick={() => onEdit(item)}
+                className={CARD_BTN}
+              >
+                <Edit3 className="w-3 h-3 text-zinc-400" />
+                <span>编辑</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleDelete}
-              className={CARD_BTN}
-            >
-              <Trash2 className="w-3 h-3 text-zinc-400" />
-              <span>删除</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className={CARD_BTN}
+              >
+                <Trash2 className="w-3 h-3 text-zinc-400" />
+                <span>删除</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -266,9 +308,15 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
   const {
     customServices,
     deletedServiceIds,
+    deletedCustomServices,
+    purgedServiceIds,
     selectedServiceCategory,
     searchQuery,
     addCustomService,
+    trashView,
+    setTrashView,
+    restoreDefaultServices,
+    emptyTrash,
   } = useBOMStore();
 
   const [editingItem, setEditingItem] = useState<EngineeringItem | null>(null);
@@ -327,30 +375,47 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
   }, [isAddModalOpen]);
 
   const allServices = useMemo(() => {
-    return getMergedServiceCatalog(customServices, deletedServiceIds);
-  }, [customServices, deletedServiceIds]);
+    if (trashView) {
+      return getDeletedServicesCatalog(
+        deletedServiceIds,
+        deletedCustomServices,
+        purgedServiceIds
+      );
+    }
+    return getMergedServiceCatalog(customServices, deletedServiceIds, purgedServiceIds);
+  }, [
+    trashView,
+    customServices,
+    deletedServiceIds,
+    deletedCustomServices,
+    purgedServiceIds,
+  ]);
 
   const filteredServices = useMemo(() => {
     return allServices.filter((s) => {
-      if (
-        selectedServiceCategory !== 'all' &&
-        s.category !== selectedServiceCategory
-      ) {
-        return false;
-      }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        return (
+        const matches = (
           s.name.toLowerCase().includes(q) ||
           s.model.toLowerCase().includes(q) ||
           s.specs.toLowerCase().includes(q) ||
           s.category.toLowerCase().includes(q) ||
           s.part_number.toLowerCase().includes(q)
         );
+        if (!matches) return false;
+      }
+      if (trashView) {
+        return true;
+      }
+      if (
+        selectedServiceCategory !== 'all' &&
+        s.category !== selectedServiceCategory
+      ) {
+        return false;
       }
       return true;
     });
-  }, [allServices, selectedServiceCategory, searchQuery]);
+  }, [allServices, trashView, selectedServiceCategory, searchQuery]);
 
   // Bidirectional calculation handlers in modal
   const handleExclChange = (val: string) => {
@@ -409,13 +474,64 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
   const showModal = isAddModalOpen || editingItem !== null;
 
   return (
-    <div className="flex-1 min-w-0">
+    <div className="flex-1 min-w-0 space-y-3">
+      {/* Recycle Bin Header Bar when in Trash View */}
+      {trashView && (
+        <div className="glass-panel rounded-xl px-4 py-2.5 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 text-zinc-300">
+            <Trash2 className="w-3.5 h-3.5 text-zinc-400" />
+            <span>
+              回收站（共 {filteredServices.length} 项已删除弱电服务，可单独还原或全部还原）
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {filteredServices.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={restoreDefaultServices}
+                  className="h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-200 hover:text-white text-xs font-medium inline-flex items-center gap-1 transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>全部还原</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        '确定彻底清空弱电服务回收站吗？清空后将无法还原。'
+                      )
+                    ) {
+                      emptyTrash();
+                    }
+                  }}
+                  className="h-7 px-2.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-300 text-xs font-medium inline-flex items-center gap-1 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>彻底清空回收站</span>
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => setTrashView(false)}
+              className="h-7 px-2.5 rounded-md bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-zinc-400 hover:text-white text-xs font-medium inline-flex items-center gap-1 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>退出回收站</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {filteredServices.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 items-start">
           {filteredServices.map((srv) => (
             <ServiceCard
               key={srv.id}
               item={srv}
+              isTrash={trashView}
               onEdit={(item) => openEditor(item)}
             />
           ))}
@@ -423,7 +539,9 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
       ) : (
         <div className="glass-panel rounded-2xl p-10 text-center space-y-3 max-w-sm mx-auto my-8">
           <SearchX className="w-7 h-7 text-zinc-500 mx-auto" />
-          <div className="text-sm font-bold text-zinc-200">无匹配弱电或服务项</div>
+          <div className="text-sm font-bold text-zinc-200">
+            {trashView ? '回收站为空' : '无匹配弱电或服务项'}
+          </div>
         </div>
       )}
 
