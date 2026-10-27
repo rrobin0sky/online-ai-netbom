@@ -205,9 +205,11 @@ export async function exportBOMToExcel(options: ExportOptions) {
         item.device.model,
         item.device.part_number,
         item.device.description ||
-          `${item.device.specs.ports.summary} | ${item.device.specs.switching_capacity_gbps}Gbps${
-            item.device.specs.poe.supported ? ` | PoE ${item.device.specs.poe.budget_watts}W` : ''
-          }`,
+          (item.device.specs?.ports?.summary
+            ? `${item.device.specs.ports.summary} | ${item.device.specs.switching_capacity_gbps || 0}Gbps${
+                item.device.specs.poe?.supported ? ` | PoE ${item.device.specs.poe.budget_watts || 0}W` : ''
+              }`
+            : '标准网络设备'),
         item.quantity,
         '台',
         `${(rowTax * 100).toFixed(0)}%`,

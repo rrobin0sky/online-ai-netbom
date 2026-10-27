@@ -278,7 +278,7 @@ export const useBOMStore = create<BOMState>()(
         const safeQty = Math.max(1, quantity);
         set((state) => {
           const existing = state.items.find(
-            (i) => i.device.id === device.id && i.areaGroup === areaGroup
+            (i) => i && i.device && i.device.id === device.id && i.areaGroup === areaGroup
           );
           if (existing) {
             return {
@@ -773,12 +773,18 @@ export const useBOMStore = create<BOMState>()(
         const allAvailableDevices = getMergedCatalog(
           get().customDevices,
           get().deletedDeviceIds,
-          get().brandRenames
+          get().brandRenames,
+          get().purgedDeviceIds
         );
         const newItems: BOMItem[] = [];
+        const devicesToAddToCustom: DeviceItem[] = [];
 
         template.items.forEach((itemDef) => {
-          const device = allAvailableDevices.find((d) => d.id === itemDef.deviceId);
+          let device = allAvailableDevices.find((d) => d.id === itemDef.deviceId);
+          if (!device && itemDef.deviceSnapshot) {
+            device = itemDef.deviceSnapshot;
+            devicesToAddToCustom.push(device);
+          }
           if (!device) return;
 
           const accessories = (itemDef.accessories || []).map((accDef) => {
@@ -788,16 +794,16 @@ export const useBOMStore = create<BOMState>()(
               accessoryName: acc ? acc.name : '网络配件',
               partNumber: acc ? (acc.partNumber || acc.part_number || '') : '',
               quantity: accDef.quantity,
-              unitPrice: acc ? acc.reference_price : 0,
+              unitPrice: accDef.unitPrice !== undefined ? accDef.unitPrice : acc ? acc.reference_price : 0,
             };
           });
 
           newItems.push({
             uid: `${device.id}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
             device,
-            quantity: itemDef.quantity,
-            areaGroup: itemDef.areaGroup,
-            customUnitPrice: null,
+            quantity: itemDef.quantity || 1,
+            areaGroup: itemDef.areaGroup || '接入层',
+            customUnitPrice: itemDef.customUnitPrice !== undefined ? itemDef.customUnitPrice : null,
             itemDiscountRate: null,
             itemTaxRate: get().taxRate,
             notes: '',
@@ -805,32 +811,50 @@ export const useBOMStore = create<BOMState>()(
           });
         });
 
+        // If template brought devices that aren't yet in customDevices, merge them in
+        let nextCustomDevices = get().customDevices;
+        if (devicesToAddToCustom.length > 0) {
+          const existingIds = new Set(nextCustomDevices.map((d) => d.id));
+          const uniqueNew = devicesToAddToCustom.filter((d) => !existingIds.has(d.id));
+          if (uniqueNew.length > 0) {
+            nextCustomDevices = [...nextCustomDevices, ...uniqueNew];
+          }
+        }
+
         set({
           projectName: template.name,
           globalDiscountRate: template.recommendedDiscount,
           items: newItems,
+          customDevices: nextCustomDevices,
+          ...(template.serviceItems ? { serviceItems: template.serviceItems } : {}),
           isDrawerOpen: true,
         });
       },
 
       saveCurrentBOMAsTemplate: (name, badge, description) => {
         const state = get();
-        if (state.items.length === 0) return;
+        if (state.items.length === 0 && (!state.serviceItems || state.serviceItems.length === 0)) return;
         const newTemplate: ProjectTemplate = {
           id: `tmpl-${Date.now()}`,
           name: name.trim() || state.projectName || '自定义方案模板',
           badge: badge.trim() || '自定义模板',
-          description: description.trim() || `包含 ${state.items.length} 项网络设备配置`,
+          description: description.trim() || `包含 ${state.items.length} 款网络设备配置`,
           recommendedDiscount: state.globalDiscountRate,
-          items: state.items.map((item) => ({
-            deviceId: item.device.id,
-            quantity: item.quantity,
-            areaGroup: item.areaGroup,
-            accessories: (item.selectedAccessories || []).map((a) => ({
-              accessoryId: a.accessoryId,
-              quantity: a.quantity,
+          items: state.items
+            .filter((item) => item && item.device)
+            .map((item) => ({
+              deviceId: item.device.id,
+              deviceSnapshot: item.device,
+              customUnitPrice: item.customUnitPrice,
+              quantity: item.quantity,
+              areaGroup: item.areaGroup,
+              accessories: (item.selectedAccessories || []).map((a) => ({
+                accessoryId: a.accessoryId,
+                quantity: a.quantity,
+                unitPrice: a.unitPrice,
+              })),
             })),
-          })),
+          serviceItems: state.serviceItems,
         };
         set((s) => ({
           templates: [newTemplate, ...(s.templates?.length ? s.templates : SCENE_TEMPLATES)],
@@ -1041,6 +1065,8 @@ export const useBOMStore = create<BOMState>()(
         set({ isSyncing: true });
         try {
           const state = get();
+          const templatesToPublish =
+            state.templates && state.templates.length > 0 ? state.templates : SCENE_TEMPLATES;
           const payload = {
             projectName: state.projectName,
             clientName: state.clientName,
@@ -1057,7 +1083,7 @@ export const useBOMStore = create<BOMState>()(
             purgedDeviceIds: state.purgedDeviceIds,
             customServices: state.customServices,
             deletedServiceIds: state.deletedServiceIds,
-            templates: state.templates,
+            templates: templatesToPublish,
             brands: state.brands,
             brandRenames: state.brandRenames,
           };
@@ -1108,9 +1134,24 @@ export const useBOMStore = create<BOMState>()(
               deletedServiceIds: payload.deletedServiceIds !== undefined ? payload.deletedServiceIds : state.deletedServiceIds,
               brands: payload.brands || state.brands,
               brandRenames: payload.brandRenames || state.brandRenames,
-              templates: payload.templates || state.templates,
-              items: payload.items !== undefined ? payload.items : state.items,
-              serviceItems: payload.serviceItems !== undefined ? payload.serviceItems : state.serviceItems,
+              templates:
+                payload.templates && payload.templates.length > 0
+                  ? payload.templates
+                  : state.templates?.length
+                  ? state.templates
+                  : SCENE_TEMPLATES,
+              items:
+                state.items && state.items.length > 0
+                  ? state.items
+                  : payload.items !== undefined
+                  ? payload.items
+                  : state.items,
+              serviceItems:
+                state.serviceItems && state.serviceItems.length > 0
+                  ? state.serviceItems
+                  : payload.serviceItems !== undefined
+                  ? payload.serviceItems
+                  : state.serviceItems,
               ...(payload.projectName ? { projectName: payload.projectName } : {}),
               ...(payload.clientName ? { clientName: payload.clientName } : {}),
             }));

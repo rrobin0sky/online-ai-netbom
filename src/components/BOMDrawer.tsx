@@ -125,15 +125,16 @@ export const BOMDrawer: React.FC = () => {
   let equipExclSubtotal = 0;
   let equipInclSubtotal = 0;
 
-  items.forEach((item) => {
-    const gpl = item.device.pricing.list_price_gpl;
+  (items || []).forEach((item) => {
+    if (!item || !item.device) return;
+    const gpl = item.device.pricing?.list_price_gpl ?? null;
     const effectiveDiscount = item.itemDiscountRate ?? globalDiscountRate;
     const rowTax = item.itemTaxRate ?? taxRate;
 
     const hostUnitPriceExcl =
       item.customUnitPrice !== null
         ? item.customUnitPrice
-        : item.device.pricing.cost_estimate !== null
+        : item.device.pricing?.cost_estimate !== null && item.device.pricing?.cost_estimate !== undefined
         ? item.device.pricing.cost_estimate
         : gpl !== null
         ? Math.round(gpl * effectiveDiscount)
@@ -144,9 +145,9 @@ export const BOMDrawer: React.FC = () => {
     equipInclSubtotal += hostUnitPriceIncl * item.quantity;
 
     (item.selectedAccessories || []).forEach((acc) => {
-      const accExcl = acc.unitPrice;
+      const accExcl = acc.unitPrice || 0;
       const accIncl = round2(accExcl * (1 + rowTax));
-      const totalAccQty = acc.quantity * item.quantity;
+      const totalAccQty = (acc.quantity || 1) * item.quantity;
       equipExclSubtotal += accExcl * totalAccQty;
       equipInclSubtotal += accIncl * totalAccQty;
     });
@@ -158,8 +159,8 @@ export const BOMDrawer: React.FC = () => {
 
   (serviceItems || []).forEach((s) => {
     if (s.pricingMode !== 'percent') {
-      const excl = s.unitPriceExclTax * s.quantity;
-      const incl = s.unitPriceInclTax * s.quantity;
+      const excl = (s.unitPriceExclTax || 0) * (s.quantity || 1);
+      const incl = (s.unitPriceInclTax || 0) * (s.quantity || 1);
       fixedServiceExcl += excl;
       fixedServiceIncl += incl;
     }
@@ -173,7 +174,7 @@ export const BOMDrawer: React.FC = () => {
   (serviceItems || []).forEach((s) => {
     if (s.pricingMode === 'percent') {
       const excl = round2(baseForPercent * ((s.percentageRate || 0) / 100));
-      const incl = round2(excl * (1 + s.taxRate));
+      const incl = round2(excl * (1 + (s.taxRate || 0)));
       serviceExclSubtotal += excl;
       serviceInclSubtotal += incl;
     }
@@ -187,15 +188,17 @@ export const BOMDrawer: React.FC = () => {
 
   const auditIssues = useMemo(() => {
     const issues: { type: 'severe' | 'warn' | 'ok'; title: string; desc: string }[] = [];
-    if (items.length === 0 && (!serviceItems || serviceItems.length === 0)) {
+    const validItems = (items || []).filter((i) => i && i.device);
+    if (validItems.length === 0 && (!serviceItems || serviceItems.length === 0)) {
       return issues;
     }
 
     // 1. Modular power supply check
-    items.forEach((item) => {
+    validItems.forEach((item) => {
+      const ps = item.device.specs?.power_supply;
       const needsPowerWarning =
-        item.device.specs.power_supply.type === 'modular' &&
-        item.device.specs.power_supply.default_included === 0 &&
+        ps?.type === 'modular' &&
+        ps?.default_included === 0 &&
         (!item.selectedAccessories ||
           !item.selectedAccessories.some(
             (a) => a.accessoryId.includes('pwr') || a.accessoryId.includes('pac')
@@ -210,13 +213,13 @@ export const BOMDrawer: React.FC = () => {
     });
 
     // 2. 0 price items check
-    items.forEach((item) => {
-      const gpl = item.device.pricing.list_price_gpl;
+    validItems.forEach((item) => {
+      const gpl = item.device.pricing?.list_price_gpl ?? null;
       const effectiveDiscount = item.itemDiscountRate ?? globalDiscountRate;
       const unitPrice =
         item.customUnitPrice !== null
           ? item.customUnitPrice
-          : item.device.pricing.cost_estimate !== null
+          : item.device.pricing?.cost_estimate !== null && item.device.pricing?.cost_estimate !== undefined
           ? item.device.pricing.cost_estimate
           : gpl !== null
           ? Math.round(gpl * effectiveDiscount)
@@ -233,12 +236,12 @@ export const BOMDrawer: React.FC = () => {
     // 3. Optical ports vs transceivers
     let totalOpticalPorts = 0;
     let totalTransceivers = 0;
-    items.forEach((item) => {
-      const uplinkCount = item.device.specs.ports.uplink_count || 0;
+    validItems.forEach((item) => {
+      const uplinkCount = item.device.specs?.ports?.uplink_count || 0;
       totalOpticalPorts += uplinkCount * item.quantity;
       (item.selectedAccessories || []).forEach((acc) => {
-        if (acc.accessoryId.includes('sfp')) {
-          totalTransceivers += acc.quantity * item.quantity;
+        if (acc.accessoryId && acc.accessoryId.includes('sfp')) {
+          totalTransceivers += (acc.quantity || 1) * item.quantity;
         }
       });
     });
@@ -251,7 +254,7 @@ export const BOMDrawer: React.FC = () => {
     }
 
     // 4. Multi-tax check
-    const itemTaxes = items.map((i) => i.itemTaxRate ?? taxRate);
+    const itemTaxes = validItems.map((i) => i.itemTaxRate ?? taxRate);
     const mixedTaxes = new Set([taxRate, ...itemTaxes]);
     if (mixedTaxes.size > 1) {
       issues.push({
@@ -592,14 +595,15 @@ export const BOMDrawer: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-white/10">
                   {items.map((item, idx) => {
-                    const gpl = item.device.pricing.list_price_gpl;
+                    if (!item || !item.device) return null;
+                    const gpl = item.device.pricing?.list_price_gpl ?? null;
                     const effectiveDiscount = item.itemDiscountRate ?? globalDiscountRate;
                     const rowTax = item.itemTaxRate ?? taxRate;
 
                     const unitPriceExcl =
                       item.customUnitPrice !== null
                         ? item.customUnitPrice
-                        : item.device.pricing.cost_estimate !== null
+                        : item.device.pricing?.cost_estimate !== null && item.device.pricing?.cost_estimate !== undefined
                         ? item.device.pricing.cost_estimate
                         : gpl !== null
                         ? Math.round(gpl * effectiveDiscount)
@@ -608,13 +612,24 @@ export const BOMDrawer: React.FC = () => {
                     const unitPriceIncl = round2(unitPriceExcl * (1 + rowTax));
                     const lineTotalIncl = round2(unitPriceIncl * item.quantity);
 
+                    const ps = item.device.specs?.power_supply;
                     const needsPowerWarning =
-                      item.device.specs.power_supply.type === 'modular' &&
-                      item.device.specs.power_supply.default_included === 0 &&
+                      ps?.type === 'modular' &&
+                      ps?.default_included === 0 &&
                       (!item.selectedAccessories ||
                         !item.selectedAccessories.some(
                           (a) => a.accessoryId.includes('pwr') || a.accessoryId.includes('pac')
                         ));
+
+                    const specDesc =
+                      item.device.description ||
+                      (item.device.specs?.ports?.summary
+                        ? `${item.device.specs.ports.summary} | ${item.device.specs.switching_capacity_gbps || 0}G${
+                            item.device.specs.poe?.supported
+                              ? ` | PoE ${item.device.specs.poe.budget_watts || 0}W`
+                              : ''
+                          }`
+                        : '标准网络设备');
 
                     return (
                       <React.Fragment key={item.uid}>
@@ -637,7 +652,7 @@ export const BOMDrawer: React.FC = () => {
                               <option value="外联安全区" className="bg-zinc-900">外联安全区</option>
                             </select>
                           </td>
-                          <td className="py-2 px-2 font-medium text-zinc-300">{item.device.brand}</td>
+                          <td className="py-2 px-2 font-medium text-zinc-300">{item.device.brand || '通用'}</td>
                           <td className="py-2 px-2.5 font-bold text-zinc-100">
                             <div>{item.device.model}</div>
                             {needsPowerWarning && (
@@ -647,23 +662,13 @@ export const BOMDrawer: React.FC = () => {
                             )}
                           </td>
                           <td className="py-2 px-2 font-mono text-zinc-400 text-xs">
-                            {item.device.part_number}
+                            {item.device.part_number || '-'}
                           </td>
                           <td
                             className="py-2 px-2.5 text-zinc-300 text-xs max-w-xs truncate"
-                            title={
-                              item.device.description ||
-                              `${item.device.specs.ports.summary} | ${item.device.specs.switching_capacity_gbps}G`
-                            }
+                            title={specDesc}
                           >
-                            {item.device.description || (
-                              <>
-                                {item.device.specs.ports.summary} | {item.device.specs.switching_capacity_gbps}G
-                                {item.device.specs.poe.supported
-                                  ? ` | PoE ${item.device.specs.poe.budget_watts}W`
-                                  : ''}
-                              </>
-                            )}
+                            {specDesc}
                           </td>
                           <td className="py-1 px-1 text-center">
                             <input
