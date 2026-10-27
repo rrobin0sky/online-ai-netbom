@@ -1,5 +1,6 @@
 import { DeviceItem } from '../types/device';
-import { BOMServiceItem } from './seedServices';
+import { BOMServiceItem, SEED_SERVICES } from './seedServices';
+import { SEED_DEVICES } from './seedDevices';
 
 export interface ProjectTemplate {
   id: string;
@@ -236,7 +237,134 @@ const TEMPLATE_DEVICES: Record<string, DeviceItem> = {
   },
 };
 
+function findSeedDev(id: string): DeviceItem | undefined {
+  return SEED_DEVICES.find((d) => d.id === id);
+}
+
+function findSeedSrv(id: string, qty: number, notes = ''): BOMServiceItem | undefined {
+  const srv = SEED_SERVICES.find((s) => s.id === id);
+  if (!srv) return undefined;
+  return {
+    uid: `srv-tib-${id}`,
+    item: srv,
+    quantity: qty,
+    pricingMode: srv.pricingMode,
+    unitPriceExclTax: srv.unitPriceExclTax,
+    unitPriceInclTax: srv.unitPriceInclTax,
+    percentageRate: srv.percentageRate ?? 5,
+    taxRate: srv.taxRate,
+    notes,
+  };
+}
+
 export const SCENE_TEMPLATES: ProjectTemplate[] = [
+  {
+    id: 'tib-system-reconstruction',
+    name: 'TIB1/2 网络分离与系统重构项目 (标准方案)',
+    nameEn: 'TIB Network Separation & Infrastructure Reconstruction',
+    badge: '企业级全栈交付',
+    badgeEn: 'Full-Stack Enterprise',
+    description: '出口防火墙双机 + 万兆核心交换 + 企业级物理服务器(域控/文件) + JumpServer堡垒机/IP-guard防泄密 + 割接人日与等保评定完整方案。',
+    descriptionEn: 'Dual NGFW + 10G Core + Rackmount Servers + JumpServer Bastion + IP-guard DLP + Professional Cutover Mandays.',
+    recommendedDiscount: 1.0,
+    items: [
+      {
+        deviceId: 'fortinet-fg-80f',
+        deviceSnapshot: findSeedDev('fortinet-fg-80f'),
+        quantity: 2,
+        areaGroup: '网络及弱电-安全出口区',
+        customUnitPrice: 15850,
+      },
+      {
+        deviceId: 'h3c-us700-core',
+        deviceSnapshot: findSeedDev('h3c-us700-core'),
+        quantity: 2,
+        areaGroup: '网络及弱电-核心汇聚层',
+        customUnitPrice: 14118,
+      },
+      {
+        deviceId: 'h3c-us528s-x-hp-h1',
+        deviceSnapshot: findSeedDev('h3c-us528s-x-hp-h1'),
+        quantity: 2,
+        areaGroup: '网络及弱电-接入与PoE区',
+        customUnitPrice: 3660,
+      },
+      {
+        deviceId: 'h3c-uap673',
+        deviceSnapshot: findSeedDev('h3c-uap673'),
+        quantity: 8,
+        areaGroup: '网络及弱电-无线覆盖区',
+        customUnitPrice: 1310,
+      },
+      {
+        deviceId: 'h3c-r4700-g6-ad',
+        deviceSnapshot: findSeedDev('h3c-r4700-g6-ad'),
+        quantity: 2,
+        areaGroup: '服务器采购 (方案A 物理机)',
+        customUnitPrice: 57156,
+      },
+      {
+        deviceId: 'h3c-r4900-g6-file',
+        deviceSnapshot: findSeedDev('h3c-r4900-g6-file'),
+        quantity: 1,
+        areaGroup: '服务器采购 (方案A 物理机)',
+        customUnitPrice: 98501,
+      },
+      {
+        deviceId: 'ms-win-server-2025',
+        deviceSnapshot: findSeedDev('ms-win-server-2025'),
+        quantity: 5,
+        areaGroup: '系统与安全软件',
+        customUnitPrice: 8328,
+      },
+      {
+        deviceId: 'jumpserver-ent-3y',
+        deviceSnapshot: findSeedDev('jumpserver-ent-3y'),
+        quantity: 1,
+        areaGroup: '系统与安全软件',
+        customUnitPrice: 42353,
+      },
+      {
+        deviceId: 'ipguard-encrypt-20p',
+        deviceSnapshot: findSeedDev('ipguard-encrypt-20p'),
+        quantity: 1,
+        areaGroup: '系统与安全软件',
+        customUnitPrice: 15100,
+      },
+      {
+        deviceId: 'canon-ir-adv-c3926',
+        deviceSnapshot: findSeedDev('canon-ir-adv-c3926'),
+        quantity: 1,
+        areaGroup: '办公打印与外设',
+        customUnitPrice: 26400,
+      },
+      {
+        deviceId: 'tenda-tdl5708m-kvm',
+        deviceSnapshot: findSeedDev('tenda-tdl5708m-kvm'),
+        quantity: 1,
+        areaGroup: '服务器采购 (方案A 物理机)',
+        customUnitPrice: 4550,
+      },
+      {
+        deviceId: 'htxk-om2-armored-cable',
+        deviceSnapshot: findSeedDev('htxk-om2-armored-cable'),
+        quantity: 160,
+        areaGroup: '弱电线材与主干光缆',
+        customUnitPrice: 7,
+      },
+    ],
+    serviceItems: [
+      findSeedSrv('srv-pm-total', 1, '总体推进/沟通协调/质量把控'),
+      findSeedSrv('srv-req-design', 6, '2人*3天 = 6人日 (架构师调研设计)'),
+      findSeedSrv('srv-net-preconfig', 24, '网络19人日 + 终端PC5人日 = 24人日'),
+      findSeedSrv('srv-server-preconfig', 24, '物理机上架/RAID/系统应用部署 24人日'),
+      findSeedSrv('srv-net-cutover-night', 19, '非工作时间割接迁移 19人日 (1.5倍加急)'),
+      findSeedSrv('srv-server-cutover-night', 4, '非工作时间服务器加固与断电演练 4人日'),
+      findSeedSrv('srv-standby-support', 2, '割接上线后现场驻场保障 2人日'),
+      findSeedSrv('srv-docs-delivery', 7, '竣工交付图书5人日 + 运维培训2人日'),
+      findSeedSrv('srv-sec-compliance', 1, '一级等保专家评定指导与评审'),
+    ].filter(Boolean) as BOMServiceItem[],
+  },
   {
     id: 'campus-standard-500',
     name: '中大型企业智能园区 (500人网络)',

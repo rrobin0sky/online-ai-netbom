@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const DeviceSpecSchema = z.object({
-  form_factor: z.enum(['1U', '2U', '3U', '4U', 'Modular', 'Desktop', 'Ceiling', 'Module']),
+  form_factor: z.enum(['1U', '2U', '3U', '4U', 'Modular', 'Desktop', 'Ceiling', 'Module', 'Tower', 'Software', 'Standard']),
   ports: z.object({
     summary: z.string(),
     downlink: z.string(),
@@ -18,7 +18,7 @@ export const DeviceSpecSchema = z.object({
     budget_watts: z.number().optional(),
     standard: z.enum(['PoE', 'PoE+', 'PoE++', 'None']).default('None'),
   }),
-  layer: z.enum(['L2', 'L2+', 'L3', 'DataCenter', 'Security', 'Accessory']),
+  layer: z.enum(['L2', 'L2+', 'L3', 'DataCenter', 'Security', 'Accessory', 'Server', 'Storage', 'Software', 'Peripherals']),
   power_supply: z.object({
     type: z.enum(['fixed', 'modular', 'passive', 'external']),
     slots: z.number().default(1),
@@ -60,7 +60,19 @@ export const DeviceItemSchema = z.object({
   series: z.string(),
   model: z.string(),
   part_number: z.string(),
-  category: z.enum(['switch', 'router', 'firewall', 'wireless_ap', 'transceiver', 'power_module', 'cable']),
+  category: z.enum([
+    'switch',
+    'router',
+    'firewall',
+    'wireless_ap',
+    'transceiver',
+    'power_module',
+    'cable',
+    'server',
+    'storage',
+    'software',
+    'peripherals',
+  ]),
   lifecycle: z.enum(['active', 'eol', 'announcement']).default('active'),
   replacement_model: z.string().nullable().optional(),
   description: z.string(),

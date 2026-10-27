@@ -75,9 +75,13 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
 
   const layers = [
     { id: 'all', label: '全部' },
-    { id: 'L2+', label: '接入' },
+    { id: 'Security', label: '安全网关' },
     { id: 'L3', label: '核心/汇聚' },
-    { id: 'DataCenter', label: '数据中心' },
+    { id: 'L2+', label: '接入/PoE' },
+    { id: 'Server', label: '计算服务器' },
+    { id: 'Storage', label: '集中存储' },
+    { id: 'Software', label: '系统软件' },
+    { id: 'Peripherals', label: '外设/辅材' },
   ];
 
   const speeds = [

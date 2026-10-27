@@ -6,8 +6,29 @@ import { EngineeringItem, BOMServiceItem, SEED_SERVICES } from '../data/seedServ
 import { SCENE_TEMPLATES, ProjectTemplate } from '../data/templates';
 import LZString from 'lz-string';
 
-export const DEFAULT_BRANDS = ['Huawei', 'H3C', 'Cisco', 'Ruijie', 'FS.com'];
-export const DEFAULT_SERVICE_CATEGORIES = ['弱电材料', '布线人工', '作业费', '项目管理费'];
+export const DEFAULT_BRANDS = [
+  'H3C',
+  'Fortinet',
+  'Dell',
+  'Microsoft',
+  '佳能 CANON',
+  'IP-guard',
+  'Veeam',
+  'JumpServer',
+  '阿里云 Cloud',
+  'Huawei',
+  'Cisco',
+  'Ruijie',
+  'HTXK',
+  'FS.com',
+];
+export const DEFAULT_SERVICE_CATEGORIES = [
+  '弱电材料',
+  '布线人工',
+  '实施与割接',
+  '项目管理费',
+  '安全与等保',
+];
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;

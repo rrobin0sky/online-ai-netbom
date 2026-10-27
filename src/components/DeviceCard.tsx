@@ -105,8 +105,16 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
   const handleAddToBOM = (e: React.MouseEvent) => {
     e.stopPropagation();
     const defaultArea =
-      device.specs.layer === 'DataCenter'
-        ? '数据中心'
+      device.specs.layer === 'DataCenter' ||
+      device.specs.layer === 'Server' ||
+      device.specs.layer === 'Storage'
+        ? '服务器机房'
+        : device.specs.layer === 'Security'
+        ? '安全出口区'
+        : device.specs.layer === 'Software'
+        ? '系统与软件'
+        : device.specs.layer === 'Peripherals'
+        ? '办公外设与辅材'
         : device.specs.layer === 'L3'
         ? '核心汇聚层'
         : '接入层';
@@ -317,33 +325,44 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                 {device.specs.layer} • {device.specs.form_factor}
               </span>
             </div>
+            {device.specs.switching_capacity_gbps > 0 || device.specs.forwarding_rate_mpps > 0 ? (
+              <>
+                <div>
+                  <span className="text-zinc-500">容量:</span>{' '}
+                  <span className="font-mono text-zinc-200">
+                    {device.specs.switching_capacity_gbps} Gbps
+                  </span>
+                </div>
+                <div>
+                  <span className="text-zinc-500">转发:</span>{' '}
+                  <span className="font-mono text-zinc-200">
+                    {device.specs.forwarding_rate_mpps} Mpps
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="col-span-2 truncate">
+                  <span className="text-zinc-500">接口/规格:</span>{' '}
+                  <span className="text-zinc-200">{device.specs.ports.summary || '标准配置'}</span>
+                </div>
+              </>
+            )}
             <div>
-              <span className="text-zinc-500">容量:</span>{' '}
-              <span className="font-mono text-zinc-200">
-                {device.specs.switching_capacity_gbps} Gbps
-              </span>
-            </div>
-            <div>
-              <span className="text-zinc-500">转发:</span>{' '}
-              <span className="font-mono text-zinc-200">
-                {device.specs.forwarding_rate_mpps} Mpps
-              </span>
-            </div>
-            <div>
-              <span className="text-zinc-500">PoE:</span>{' '}
+              <span className="text-zinc-500">供电:</span>{' '}
               {device.specs.poe.supported ? (
-                <span className="text-zinc-200">{device.specs.poe.budget_watts}W</span>
+                <span className="text-zinc-200">PoE ({device.specs.poe.budget_watts}W)</span>
               ) : (
-                <span className="text-zinc-400">无</span>
+                <span className="text-zinc-400">
+                  {device.specs.power_supply.type === 'modular'
+                    ? `插槽x${device.specs.power_supply.slots}`
+                    : '固定/内置'}
+                </span>
               )}
             </div>
             <div>
-              <span className="text-zinc-500">电源:</span>{' '}
-              <span className="text-zinc-300">
-                {device.specs.power_supply.type === 'modular'
-                  ? `插槽x${device.specs.power_supply.slots}`
-                  : '固定'}
-              </span>
+              <span className="text-zinc-500">系列:</span>{' '}
+              <span className="text-zinc-300">{device.series || device.brand}</span>
             </div>
           </div>
 
