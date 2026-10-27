@@ -15,19 +15,18 @@ export const DEFAULT_BRANDS = [
   'IP-guard',
   'Veeam',
   'JumpServer',
-  '阿里云 Cloud',
-  'Huawei',
-  'Cisco',
-  'Ruijie',
+  'ZOHO',
+  'ZStack',
   'HTXK',
-  'FS.com',
+  'Tenda 腾达',
+  '国产/利旧',
 ];
 export const DEFAULT_SERVICE_CATEGORIES = [
-  '弱电材料',
-  '布线人工',
+  '弱电施工',
   '实施与割接',
   '项目管理费',
   '安全与等保',
+  '次年维保与订阅续费',
 ];
 
 function round2(n: number): number {
@@ -198,12 +197,12 @@ interface BOMState {
 export const useBOMStore = create<BOMState>()(
   persist(
     (set, get) => ({
-      projectName: '企业综合网络改造与集成方案',
-      clientName: '某重点企事业单位 / 数据中心',
-      creatorName: '网络规划架构部',
+      projectName: 'TIB1/2 网络分离与系统重构项目',
+      clientName: 'TIB 客户项目组',
+      creatorName: '网络与系统架构交付部',
       quoteValidityDays: 30,
-      globalDiscountRate: 0.30,
-      targetMarginRate: 0.25,
+      globalDiscountRate: 1.0,
+      targetMarginRate: 0.20,
       taxRate: 0.13,
 
       workspaceTab: 'devices',

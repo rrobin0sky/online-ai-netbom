@@ -351,15 +351,15 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
     } else {
       setEditingItem(null);
       const defaultCat =
-        selectedServiceCategory !== 'all' ? selectedServiceCategory : '弱电材料';
+        selectedServiceCategory !== 'all' ? selectedServiceCategory : '弱电施工';
       const defaultTax =
-        defaultCat === '弱电材料' ? 0.13 : defaultCat === '项目管理费' ? 0.06 : 0.09;
+        defaultCat === '弱电施工' ? 0.09 : 0.06;
       setCategory(defaultCat);
       setName('');
       setModel('');
       setPartNumber(`SRV-${Math.floor(100 + Math.random() * 900)}`);
       setSpecs('');
-      setUnit(defaultCat === '弱电材料' ? '米' : defaultCat === '布线人工' ? '点' : '项');
+      setUnit(defaultCat === '弱电施工' ? '式' : defaultCat === '实施与割接' ? '人日' : '项');
       setPricingMode(defaultCat === '项目管理费' ? 'percent' : 'fixed');
       setTaxRate(defaultTax);
       setPriceIncl('100');
@@ -583,11 +583,9 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
                       setCategory(cat);
                       if (!editingItem) {
                         const nextTax =
-                          cat === '弱电材料'
-                            ? 0.13
-                            : cat === '项目管理费'
-                            ? 0.06
-                            : 0.09;
+                          cat === '弱电施工'
+                            ? 0.09
+                            : 0.06;
                         handleTaxChange(nextTax);
                       }
                     }}
