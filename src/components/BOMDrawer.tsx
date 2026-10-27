@@ -115,77 +115,6 @@ export const BOMDrawer: React.FC = () => {
   const [isServicePickerOpen, setIsServicePickerOpen] = useState(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
 
-  if (!isDrawerOpen) return null;
-
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  // ============================================================================
-  // Financial Calculations
-  // ============================================================================
-  let equipExclSubtotal = 0;
-  let equipInclSubtotal = 0;
-
-  (items || []).forEach((item) => {
-    if (!item || !item.device) return;
-    const gpl = item.device.pricing?.list_price_gpl ?? null;
-    const effectiveDiscount = item.itemDiscountRate ?? globalDiscountRate;
-    const rowTax = item.itemTaxRate ?? taxRate;
-
-    const hostUnitPriceExcl =
-      item.customUnitPrice !== null
-        ? item.customUnitPrice
-        : item.device.pricing?.cost_estimate !== null && item.device.pricing?.cost_estimate !== undefined
-        ? item.device.pricing.cost_estimate
-        : gpl !== null
-        ? Math.round(gpl * effectiveDiscount)
-        : 0;
-
-    const hostUnitPriceIncl = round2(hostUnitPriceExcl * (1 + rowTax));
-    equipExclSubtotal += hostUnitPriceExcl * item.quantity;
-    equipInclSubtotal += hostUnitPriceIncl * item.quantity;
-
-    (item.selectedAccessories || []).forEach((acc) => {
-      const accExcl = acc.unitPrice || 0;
-      const accIncl = round2(accExcl * (1 + rowTax));
-      const totalAccQty = (acc.quantity || 1) * item.quantity;
-      equipExclSubtotal += accExcl * totalAccQty;
-      equipInclSubtotal += accIncl * totalAccQty;
-    });
-  });
-
-  // Services: First calculate fixed items to serve as base for percent-mode services
-  let fixedServiceExcl = 0;
-  let fixedServiceIncl = 0;
-
-  (serviceItems || []).forEach((s) => {
-    if (s.pricingMode !== 'percent') {
-      const excl = (s.unitPriceExclTax || 0) * (s.quantity || 1);
-      const incl = (s.unitPriceInclTax || 0) * (s.quantity || 1);
-      fixedServiceExcl += excl;
-      fixedServiceIncl += incl;
-    }
-  });
-
-  const baseForPercent = equipExclSubtotal + fixedServiceExcl;
-
-  let serviceExclSubtotal = fixedServiceExcl;
-  let serviceInclSubtotal = fixedServiceIncl;
-
-  (serviceItems || []).forEach((s) => {
-    if (s.pricingMode === 'percent') {
-      const excl = round2(baseForPercent * ((s.percentageRate || 0) / 100));
-      const incl = round2(excl * (1 + (s.taxRate || 0)));
-      serviceExclSubtotal += excl;
-      serviceInclSubtotal += incl;
-    }
-  });
-
-  const totalExclAmount = round2(equipExclSubtotal + serviceExclSubtotal);
-  const grandTotal = round2(equipInclSubtotal + serviceInclSubtotal);
-  const totalTaxAmount = round2(grandTotal - totalExclAmount);
-
-  const availableServices = getMergedServiceCatalog(customServices, deletedServiceIds);
-
   const auditIssues = useMemo(() => {
     const issues: { type: 'severe' | 'warn' | 'ok'; title: string; desc: string }[] = [];
     const validItems = (items || []).filter((i) => i && i.device);
@@ -270,6 +199,77 @@ export const BOMDrawer: React.FC = () => {
   }, [items, serviceItems, taxRate, globalDiscountRate]);
 
   const hasSevereIssue = auditIssues.some((i) => i.type === 'severe');
+
+  if (!isDrawerOpen) return null;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // ============================================================================
+  // Financial Calculations
+  // ============================================================================
+  let equipExclSubtotal = 0;
+  let equipInclSubtotal = 0;
+
+  (items || []).forEach((item) => {
+    if (!item || !item.device) return;
+    const gpl = item.device.pricing?.list_price_gpl ?? null;
+    const effectiveDiscount = item.itemDiscountRate ?? globalDiscountRate;
+    const rowTax = item.itemTaxRate ?? taxRate;
+
+    const hostUnitPriceExcl =
+      item.customUnitPrice !== null
+        ? item.customUnitPrice
+        : item.device.pricing?.cost_estimate !== null && item.device.pricing?.cost_estimate !== undefined
+        ? item.device.pricing.cost_estimate
+        : gpl !== null
+        ? Math.round(gpl * effectiveDiscount)
+        : 0;
+
+    const hostUnitPriceIncl = round2(hostUnitPriceExcl * (1 + rowTax));
+    equipExclSubtotal += hostUnitPriceExcl * item.quantity;
+    equipInclSubtotal += hostUnitPriceIncl * item.quantity;
+
+    (item.selectedAccessories || []).forEach((acc) => {
+      const accExcl = acc.unitPrice || 0;
+      const accIncl = round2(accExcl * (1 + rowTax));
+      const totalAccQty = (acc.quantity || 1) * item.quantity;
+      equipExclSubtotal += accExcl * totalAccQty;
+      equipInclSubtotal += accIncl * totalAccQty;
+    });
+  });
+
+  // Services: First calculate fixed items to serve as base for percent-mode services
+  let fixedServiceExcl = 0;
+  let fixedServiceIncl = 0;
+
+  (serviceItems || []).forEach((s) => {
+    if (s.pricingMode !== 'percent') {
+      const excl = (s.unitPriceExclTax || 0) * (s.quantity || 1);
+      const incl = (s.unitPriceInclTax || 0) * (s.quantity || 1);
+      fixedServiceExcl += excl;
+      fixedServiceIncl += incl;
+    }
+  });
+
+  const baseForPercent = equipExclSubtotal + fixedServiceExcl;
+
+  let serviceExclSubtotal = fixedServiceExcl;
+  let serviceInclSubtotal = fixedServiceIncl;
+
+  (serviceItems || []).forEach((s) => {
+    if (s.pricingMode === 'percent') {
+      const excl = round2(baseForPercent * ((s.percentageRate || 0) / 100));
+      const incl = round2(excl * (1 + (s.taxRate || 0)));
+      serviceExclSubtotal += excl;
+      serviceInclSubtotal += incl;
+    }
+  });
+
+  const totalExclAmount = round2(equipExclSubtotal + serviceExclSubtotal);
+  const grandTotal = round2(equipInclSubtotal + serviceInclSubtotal);
+  const totalTaxAmount = round2(grandTotal - totalExclAmount);
+
+  const availableServices = getMergedServiceCatalog(customServices, deletedServiceIds);
 
   const handleTechReview = () => {
     const name = prompt('请输入技术复核人姓名（如：张工 / 售前网络架构师）：', techReviewer || '张工');
