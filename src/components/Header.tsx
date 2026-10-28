@@ -8,6 +8,9 @@ import {
   Cloud,
   Lock,
   LockOpen,
+  Eye,
+  EyeOff,
+  Globe,
 } from 'lucide-react';
 import { useBOMStore } from '../store/useBOMStore';
 
@@ -32,8 +35,9 @@ export const Header: React.FC<HeaderProps> = ({
     setSearchQuery,
     setSaveModalOpen,
     isCostUnlocked,
-    lockCost,
-    setCostModalOpen,
+    isAdmin,
+    toggleCostLock,
+    globalDefaultVersion,
   } = useBOMStore();
 
   const totalItemCount =
@@ -125,28 +129,52 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {isCostUnlocked ? (
+          {/* Admin Cost Visibility Toggle (仅管理员可见，一键防窥切换，免密直通) */}
+          {isAdmin && (
             <button
-              onClick={lockCost}
-              className={`${BTN_BASE} text-amber-300 hover:text-amber-200 border-amber-500/30 bg-amber-500/10`}
-              title="成本价已解锁，点击快速上锁（防窥演示模式）"
+              type="button"
+              onClick={toggleCostLock}
+              className={`${BTN_BASE} ${
+                isCostUnlocked
+                  ? 'text-amber-300 hover:text-amber-200 border-amber-500/30 bg-amber-500/10'
+                  : 'text-zinc-400 hover:text-zinc-200 border-white/10'
+              }`}
+              title={
+                isCostUnlocked
+                  ? '成本显示中（点击一键开启防窥保护）'
+                  : '成本已防窥（点击恢复显示内部成本）'
+              }
             >
-              <LockOpen className="w-3.5 h-3.5" />
-              <span>已解锁</span>
+              {isCostUnlocked ? (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-amber-400" />
+                  <span>成本显示</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>成本防窥</span>
+                </>
+              )}
             </button>
-          ) : (
+          )}
+
+          {/* Admin Global Publish Pill (仅管理员可见，免密直通全网发布) */}
+          {isAdmin && (
             <button
-              onClick={() => setCostModalOpen(true)}
-              className={BTN_BASE}
-              title="输入口令查看内部成本价"
+              type="button"
+              onClick={() => setSaveModalOpen(true, 'publish')}
+              className={`${BTN_BASE} text-sky-400 hover:text-sky-300 border-sky-500/30 bg-sky-500/10 font-semibold`}
+              title="将当前配置、模板与设备库一键发布为全网官方默认"
             >
-              <Lock className="w-3.5 h-3.5 text-zinc-400" />
-              <span>成本</span>
+              <Globe className="w-3.5 h-3.5 text-sky-400" />
+              <span>全网发布 (v{globalDefaultVersion || 1})</span>
             </button>
           )}
 
           <button
-            onClick={() => setSaveModalOpen(true)}
+            type="button"
+            onClick={() => setSaveModalOpen(true, 'save')}
             className={BTN_BASE}
             title="云端保存与多端同步"
           >

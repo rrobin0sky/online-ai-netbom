@@ -103,6 +103,7 @@ interface BOMState {
 
   unlockCost: (password: string) => boolean;
   lockCost: () => void;
+  toggleCostLock: () => void;
   setCostModalOpen: (open: boolean) => void;
 
   setTechReview: (reviewed: boolean, reviewer?: string) => void;
@@ -111,11 +112,14 @@ interface BOMState {
 
   setSyncCode: (code: string) => void;
   setSyncPassword: (pass: string) => void;
-  setSaveModalOpen: (open: boolean) => void;
+  saveModalTab: 'save' | 'load' | 'publish';
+  setSaveModalTab: (tab: 'save' | 'load' | 'publish') => void;
+  setSaveModalOpen: (open: boolean, tab?: 'save' | 'load' | 'publish') => void;
   saveToCloud: (code?: string, pass?: string) => Promise<{ success: boolean; message: string }>;
   loadFromCloud: (code: string, pass?: string) => Promise<{ success: boolean; message: string }>;
   publishGlobalDefault: (adminKey: string) => Promise<{ success: boolean; message: string }>;
   fetchGlobalDefault: () => Promise<boolean>;
+  restoreOfficialBaseline: () => Promise<boolean>;
 
   setProjectName: (name: string) => void;
   setClientName: (client: string) => void;
@@ -214,7 +218,11 @@ export const useBOMStore = create<BOMState>()(
   persist(
     (set, get) => ({
       isAdmin: checkInitialAdmin(),
-      setIsAdmin: (isAdmin: boolean) => set({ isAdmin }),
+      setIsAdmin: (isAdmin: boolean) =>
+        set((state) => ({
+          isAdmin,
+          isCostUnlocked: isAdmin ? state.isCostUnlocked : false,
+        })),
 
       projectName: 'TIB1/2 网络分离与系统重构项目',
       clientName: 'TIB 客户项目组',
@@ -243,8 +251,9 @@ export const useBOMStore = create<BOMState>()(
 
       isDrawerOpen: false,
       isSaveModalOpen: false,
+      saveModalTab: 'save',
       isCostModalOpen: false,
-      isCostUnlocked: false,
+      isCostUnlocked: checkInitialAdmin(),
       isSyncing: false,
       syncCode: 'BOM-8823',
       syncPassword: '',
@@ -277,6 +286,7 @@ export const useBOMStore = create<BOMState>()(
         return false;
       },
       lockCost: () => set({ isCostUnlocked: false }),
+      toggleCostLock: () => set((state) => ({ isCostUnlocked: !state.isCostUnlocked })),
       setCostModalOpen: (isCostModalOpen: boolean) => set({ isCostModalOpen }),
 
       setTechReview: (reviewed: boolean, reviewer = '技术架构师') => {
@@ -308,7 +318,12 @@ export const useBOMStore = create<BOMState>()(
 
       setSyncCode: (syncCode) => set({ syncCode }),
       setSyncPassword: (syncPassword) => set({ syncPassword }),
-      setSaveModalOpen: (isSaveModalOpen) => set({ isSaveModalOpen }),
+      setSaveModalTab: (saveModalTab) => set({ saveModalTab }),
+      setSaveModalOpen: (isSaveModalOpen, tab) =>
+        set((state) => ({
+          isSaveModalOpen,
+          saveModalTab: tab !== undefined ? tab : state.saveModalTab,
+        })),
 
       setWorkspaceTab: (workspaceTab) => set({ workspaceTab, trashView: false }),
       setSelectedServiceCategory: (selectedServiceCategory) => set({ selectedServiceCategory }),
@@ -1296,6 +1311,44 @@ export const useBOMStore = create<BOMState>()(
             return true;
           }
           return false;
+        } catch {
+          return false;
+        }
+      },
+
+      restoreOfficialBaseline: async () => {
+        try {
+          const res = await fetch('https://bin0sky.tech/api/bom/default');
+          const data = await res.json();
+          if (!res.ok || !data.success || !data.record) return false;
+
+          const { payload, version } = data.record;
+          if (!payload) return false;
+
+          set({
+            globalDefaultVersion: version,
+            customDevices: payload.customDevices || [],
+            deletedDeviceIds: payload.deletedDeviceIds || [],
+            deletedCustomDevices: payload.deletedCustomDevices || [],
+            purgedDeviceIds: payload.purgedDeviceIds || [],
+            customServices: payload.customServices || [],
+            deletedServiceIds: payload.deletedServiceIds || [],
+            deletedCustomServices: payload.deletedCustomServices || [],
+            purgedServiceIds: payload.purgedServiceIds || [],
+            brands: payload.brands || DEFAULT_BRANDS,
+            brandRenames: payload.brandRenames || {},
+            templates: payload.templates && payload.templates.length > 0 ? payload.templates : SCENE_TEMPLATES,
+            items: payload.items || [],
+            serviceItems: payload.serviceItems || [],
+            projectName: payload.projectName || 'TIB1/2 网络分离与系统重构项目',
+            clientName: payload.clientName || 'TIB 客户项目组',
+            creatorName: payload.creatorName || '网络与系统架构交付部',
+            quoteValidityDays: payload.quoteValidityDays || 30,
+            globalDiscountRate: payload.globalDiscountRate ?? 1.0,
+            targetMarginRate: payload.targetMarginRate ?? 0.20,
+            taxRate: payload.taxRate ?? 0.13,
+          });
+          return true;
         } catch {
           return false;
         }

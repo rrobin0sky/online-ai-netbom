@@ -42,13 +42,18 @@ export const SaveSyncModal: React.FC = () => {
     loadFromCloud,
     publishGlobalDefault,
     isAdmin,
+    saveModalTab,
+    setSaveModalTab,
+    globalDefaultVersion,
+    items,
+    serviceItems,
+    templates,
   } = useBOMStore();
 
-  const [activeTab, setActiveTab] = useState<'save' | 'load' | 'publish'>('save');
+  const activeTab = saveModalTab;
+  const setActiveTab = setSaveModalTab;
   const [loadCode, setLoadCode] = useState('');
   const [loadPassword, setLoadPassword] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
-  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [copied, setCopied] = useState(false);
   const [msg, setMsg] = useState<{ text: string; isError?: boolean } | null>(null);
 
@@ -79,12 +84,7 @@ export const SaveSyncModal: React.FC = () => {
 
   const handlePublish = async () => {
     setMsg(null);
-    const key = (adminPassword || (isAdmin ? 'bin0sky.tech' : '')).trim();
-    if (!key) {
-      setMsg({ text: '请输入管理员口令', isError: true });
-      return;
-    }
-    const res = await publishGlobalDefault(key);
+    const res = await publishGlobalDefault('bin0sky.tech');
     setMsg({ text: res.message, isError: !res.success });
   };
 
@@ -170,7 +170,6 @@ export const SaveSyncModal: React.FC = () => {
               onClick={() => {
                 setActiveTab('publish');
                 setMsg(null);
-                if (!adminPassword) setAdminPassword('bin0sky.tech');
               }}
               className={`flex-1 py-2.5 px-3 text-center font-medium transition-colors flex items-center justify-center gap-1.5 ${
                 activeTab === 'publish'
@@ -333,44 +332,42 @@ export const SaveSyncModal: React.FC = () => {
 
           {activeTab === 'publish' && (
             <>
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
-                <div className="flex items-center gap-2 text-zinc-200 font-semibold text-xs">
-                  <Globe className="w-4 h-4 text-sky-400" />
-                  <span>站长管理：发布为全网官方默认</span>
+              <div className="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-zinc-100 font-bold text-xs">
+                    <Globe className="w-4 h-4 text-sky-400" />
+                    <span>站长发布控制台</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-semibold">
+                    全网当前: v{globalDefaultVersion || 1}
+                  </span>
                 </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  使用站长管理员口令，可将您当前录入、编辑整理好的所有设备、指导价、场景方案模板、品牌、弱电材料及工程服务发布为全网官方公共基础库。
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  将当前整理好的设备清单、场景方案模板、弱电单价及默认 BOM 基线固化推送到全网 Cloudflare 边缘节点。
                 </p>
                 <div className="text-[11px] text-emerald-400/90 font-medium">
-                  ✓ 发布后，全球任何访客打开网页，都将直接默认呈现此最新版本（包括场景方案模板与设备清单）。
+                  ✓ 发布后，全球访问者进入网站均将直接看到此版本 (v{(globalDefaultVersion || 1) + 1})。
                 </div>
               </div>
 
-              <div>
-                <label className="block text-zinc-400 font-medium mb-1.5">
-                  输入管理员发布口令 (Master Password)
-                </label>
-                <div className="relative flex items-center">
-                  <KeyRound className="absolute left-3 w-4 h-4 text-zinc-500 pointer-events-none" />
-                  <input
-                    type={showAdminPassword ? 'text' : 'password'}
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    placeholder="请输入管理员发布口令"
-                    className="w-full h-9 glass-input rounded-lg pl-9 pr-9 text-xs text-zinc-100 placeholder:text-zinc-600"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowAdminPassword(!showAdminPassword)}
-                    className="absolute right-2.5 h-6 w-6 flex items-center justify-center text-zinc-500 hover:text-zinc-300"
-                    title={showAdminPassword ? '隐藏口令' : '显示口令'}
-                  >
-                    {showAdminPassword ? (
-                      <EyeOff className="w-3.5 h-3.5" />
-                    ) : (
-                      <Eye className="w-3.5 h-3.5" />
-                    )}
-                  </button>
+              {/* Publish Payload Summary */}
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5 text-xs">
+                <div className="text-zinc-400 font-medium text-[11px] mb-1">本次发布包含内容清单：</div>
+                <div className="flex items-center justify-between text-zinc-300">
+                  <span>• 官方默认示范 BOM 清单</span>
+                  <span className="font-mono font-semibold text-zinc-100">{items.length} 款硬件设备</span>
+                </div>
+                <div className="flex items-center justify-between text-zinc-300">
+                  <span>• 弱电材料与工程服务项</span>
+                  <span className="font-mono font-semibold text-zinc-100">{serviceItems?.length || 0} 个服务项</span>
+                </div>
+                <div className="flex items-center justify-between text-zinc-300">
+                  <span>• 官方场景方案模板</span>
+                  <span className="font-mono font-semibold text-zinc-100">{templates?.length || 0} 套模板</span>
+                </div>
+                <div className="flex items-center justify-between text-zinc-300">
+                  <span>• 站长权限状态</span>
+                  <span className="text-emerald-400 font-medium">已认证免密直通</span>
                 </div>
               </div>
 
@@ -379,10 +376,10 @@ export const SaveSyncModal: React.FC = () => {
                   type="button"
                   onClick={handlePublish}
                   disabled={isSyncing}
-                  className={`${BTN_UNIFIED} bg-white/[0.12] hover:bg-white/[0.18] border-white/20 text-white font-semibold`}
+                  className={`${BTN_UNIFIED} bg-sky-600 hover:bg-sky-500 text-white font-semibold shadow-xs`}
                 >
                   <Globe className="w-3.5 h-3.5" />
-                  <span>{isSyncing ? '发布中...' : '发布为全网默认'}</span>
+                  <span>{isSyncing ? '正在发布到全网...' : `一键发布为官方默认 (升至 v${(globalDefaultVersion || 1) + 1})`}</span>
                 </button>
               </div>
             </>

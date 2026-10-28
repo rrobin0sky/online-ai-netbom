@@ -107,6 +107,8 @@ export const BOMDrawer: React.FC = () => {
     resetReviewStatus,
     isCostUnlocked,
     setCostModalOpen,
+    isAdmin,
+    restoreOfficialBaseline,
   } = useBOMStore();
 
   const [copied, setCopied] = useState(false);
@@ -347,28 +349,57 @@ export const BOMDrawer: React.FC = () => {
           <div className="flex items-center gap-2">
             {(items.length > 0 || (serviceItems && serviceItems.length > 0)) && (
               <>
+                {/* 恢复官方默认基线 */}
                 <button
                   type="button"
-                  onClick={handleSaveAsTemplate}
+                  onClick={async () => {
+                    if (
+                      confirm(
+                        '确定恢复全网官方基线方案吗？当前临时编辑的内容将被覆盖为最新官方母版。'
+                      )
+                    ) {
+                      const ok = await restoreOfficialBaseline();
+                      if (ok) {
+                        alert('已成功恢复为官方基线方案！');
+                      } else {
+                        alert('拉取官方基线失败，请检查网络。');
+                      }
+                    }
+                  }}
                   className={BTN_UNIFIED}
+                  title="丢弃当前临时改动，从云端恢复全网官方基线方案"
                 >
-                  {savedTmpl ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>已保存</span>
-                    </>
-                  ) : (
-                    <>
-                      <BookmarkPlus className="w-3.5 h-3.5 text-zinc-400" />
-                      <span>存模板</span>
-                    </>
-                  )}
+                  <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>恢复基线</span>
                 </button>
+
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAsTemplate}
+                    className={BTN_UNIFIED}
+                    title="存为场景方案模板"
+                  >
+                    {savedTmpl ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>已保存</span>
+                      </>
+                    ) : (
+                      <>
+                        <BookmarkPlus className="w-3.5 h-3.5 text-zinc-400" />
+                        <span>存模板</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     if (confirm('确定清空整张报价清单吗？')) clearBOM();
                   }}
                   className={BTN_UNIFIED}
+                  title="清空当前清单"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-zinc-400" />
                   <span>清空</span>

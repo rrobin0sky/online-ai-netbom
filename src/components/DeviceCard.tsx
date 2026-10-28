@@ -12,6 +12,7 @@ import {
   Trash2,
   RotateCcw,
   Lock,
+  EyeOff,
 } from 'lucide-react';
 import { DeviceItem } from '../types/device';
 import { useBOMStore } from '../store/useBOMStore';
@@ -193,20 +194,15 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                   待核价
                 </span>
               )
-            ) : (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCostModalOpen(true);
-                }}
-                className="mt-1 text-[10px] font-medium text-zinc-400 hover:text-zinc-200 bg-white/[0.04] hover:bg-white/[0.08] px-1.5 py-0.5 rounded border border-white/10 inline-flex items-center gap-1 transition-colors cursor-pointer"
-                title="输入口令查看内部成本价"
+            ) : isAdmin ? (
+              <span
+                className="mt-1 text-[10px] font-mono text-zinc-500 bg-white/[0.02] px-1.5 py-0.5 rounded border border-white/5 inline-flex items-center gap-1 cursor-default select-none"
+                title="管理员防窥模式已激活（点击顶部「成本防窥」可恢复显示）"
               >
-                <Lock className="w-2.5 h-2.5 text-zinc-500" />
-                <span>成本锁定</span>
-              </button>
-            )}
+                <EyeOff className="w-2.5 h-2.5 text-zinc-500" />
+                <span>成本已防窥</span>
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
