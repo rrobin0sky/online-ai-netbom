@@ -41,6 +41,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
     permanentlyDeleteDevice,
     isCostUnlocked,
     setCostModalOpen,
+    isAdmin,
   } = useBOMStore();
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -408,7 +409,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
 
             {!isTrash && (
               <div className="flex items-center gap-1.5">
-                {onEditDevice && (
+                {isAdmin && onEditDevice && (
                   <button
                     type="button"
                     onClick={() => onEditDevice(device)}
@@ -430,15 +431,17 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                   <span>对比</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className={CARD_BTN}
-                  title="移入回收站"
-                >
-                  <Trash2 className="w-3 h-3 text-zinc-400" />
-                  <span>删除</span>
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className={CARD_BTN}
+                    title="移入回收站"
+                  >
+                    <Trash2 className="w-3 h-3 text-zinc-400" />
+                    <span>删除</span>
+                  </button>
+                )}
               </div>
             )}
           </div>

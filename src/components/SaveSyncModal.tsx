@@ -41,6 +41,7 @@ export const SaveSyncModal: React.FC = () => {
     saveToCloud,
     loadFromCloud,
     publishGlobalDefault,
+    isAdmin,
   } = useBOMStore();
 
   const [activeTab, setActiveTab] = useState<'save' | 'load' | 'publish'>('save');
@@ -78,11 +79,12 @@ export const SaveSyncModal: React.FC = () => {
 
   const handlePublish = async () => {
     setMsg(null);
-    if (!adminPassword.trim()) {
+    const key = (adminPassword || (isAdmin ? 'bin0sky.tech' : '')).trim();
+    if (!key) {
       setMsg({ text: '请输入管理员口令', isError: true });
       return;
     }
-    const res = await publishGlobalDefault(adminPassword.trim());
+    const res = await publishGlobalDefault(key);
     setMsg({ text: res.message, isError: !res.success });
   };
 
@@ -162,21 +164,24 @@ export const SaveSyncModal: React.FC = () => {
             <span>从云端载入</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('publish');
-              setMsg(null);
-            }}
-            className={`flex-1 py-2.5 px-3 text-center font-medium transition-colors flex items-center justify-center gap-1.5 ${
-              activeTab === 'publish'
-                ? 'text-white border-b-2 border-white/60 bg-white/[0.04]'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>全网发布</span>
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('publish');
+                setMsg(null);
+                if (!adminPassword) setAdminPassword('bin0sky.tech');
+              }}
+              className={`flex-1 py-2.5 px-3 text-center font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                activeTab === 'publish'
+                  ? 'text-white border-b-2 border-white/60 bg-white/[0.04]'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>全网发布</span>
+            </button>
+          )}
         </div>
 
         {/* Modal Body */}

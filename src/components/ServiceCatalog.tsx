@@ -42,6 +42,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ item, isTrash = false, onEdit
     permanentlyDeleteService,
     isCostUnlocked,
     setCostModalOpen,
+    isAdmin,
   } = useBOMStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [addQty, setAddQty] = useState(1);
@@ -269,7 +270,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ item, isTrash = false, onEdit
 
           <p className="text-xs text-zinc-400 leading-relaxed">{item.specs}</p>
 
-          {!isTrash && (
+          {isAdmin && !isTrash && (
             <div className="flex items-center justify-end gap-1.5 pt-1">
               <button
                 type="button"

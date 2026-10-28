@@ -18,6 +18,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
   const {
     workspaceTab,
     setWorkspaceTab,
+    isAdmin,
     selectedServiceCategory,
     setSelectedServiceCategory,
     selectedBrand,
@@ -382,7 +383,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
             </div>
           ) : (
             <div className="flex items-center gap-1.5 text-xs ml-auto">
-              {onOpenAddService && (
+              {isAdmin && onOpenAddService && (
                 <button
                   type="button"
                   onClick={onOpenAddService}

@@ -93,6 +93,10 @@ interface BOMState {
   unpricedOnly: boolean;
   trashView: boolean;
 
+  // Role & Permissions
+  isAdmin: boolean;
+  setIsAdmin: (isAdmin: boolean) => void;
+
   // Actions
   setWorkspaceTab: (tab: 'devices' | 'services') => void;
   setSelectedServiceCategory: (cat: string) => void;
@@ -194,9 +198,24 @@ interface BOMState {
   loadFromShareCode: (code: string) => boolean;
 }
 
+function checkInitialAdmin(): boolean {
+  try {
+    if (typeof window === 'undefined') return false;
+    const match = document.cookie.match(/(^|;\s*)b0_auth_role=([^;]*)/);
+    const cookieRole = match ? decodeURIComponent(match[2]) : null;
+    const localRole = localStorage.getItem('b0_auth_role');
+    return cookieRole === 'admin' || localRole === 'admin';
+  } catch (e) {
+    return false;
+  }
+}
+
 export const useBOMStore = create<BOMState>()(
   persist(
     (set, get) => ({
+      isAdmin: checkInitialAdmin(),
+      setIsAdmin: (isAdmin: boolean) => set({ isAdmin }),
+
       projectName: 'TIB1/2 网络分离与系统重构项目',
       clientName: 'TIB 客户项目组',
       creatorName: '网络与系统架构交付部',
@@ -1401,4 +1420,26 @@ export function getDeletedServicesCatalog(
     (c) => deletedSet.has(c.id) && !seedIds.has(c.id)
   );
   return [...deletedCustom, ...deletedSeeds];
+}
+
+// Global Auth & Role Listeners from BinOS Parent Shell
+if (typeof window !== 'undefined') {
+  window.addEventListener('message', (e) => {
+    if (!e.data) return;
+    if (e.data.type === 'B0_AUTH_CHANGE') {
+      useBOMStore.getState().setIsAdmin(!!e.data.isAdmin);
+    }
+  });
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'b0_auth_role') {
+      useBOMStore.getState().setIsAdmin(e.newValue === 'admin');
+    }
+  });
+
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'B0_REQUEST_AUTH' }, '*');
+    }
+  } catch (e) {}
 }
